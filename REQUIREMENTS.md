@@ -137,8 +137,35 @@
 
 ### 필수 확인 (개발 시작 전)
 
-- **[필수] 백그라운드 런 감지** — 앱이 닫혀 있을 때 런이 끝나면 거리를 저장할 수 없음. 백그라운드 서비스로 런 종료를 감지할 수 있는지 확인 필요
-- **[필수] 알림 기능 지원 여부** — 배고픔 알림 없으면 사용자가 48시간을 놓치기 쉬움
+- **[확인 완료 ✅] 백그라운드 런 감지** — `Background.registerForActivityCompletedEvent()`로 앱이 닫혀 있어도 런 종료 이벤트 수신 가능
+  - `ServiceDelegate`를 상속한 백그라운드 서비스 클래스 구현 → `onActivityCompleted()` 메서드에서 거리 읽기 → 토큰 계산 → `Storage` 저장 → `Background.exit(data)`로 메인 앱에 전달
+  - 메인 앱 열릴 때 `AppBase.onBackgroundData()`로 백그라운드 결과 수신
+  - 관련 API: `Toybox.Background`, `Toybox.Activity`
+- **[확인 완료 ✅] 알림 기능** — `Toybox.Notifications.showNotification()`으로 즉시 알림 표시 가능. 단, 예약 발송 기능은 없음
+  - 구현 방법: 밥줄 때마다 `Background.registerForTemporalEvent(48시간 후)`로 재등록 → 시간 됐을 때 백그라운드에서 마지막 급식 시각 확인 → 조건 충족 시 `showNotification()` 호출
+  - `Notifications` 퍼미션 선언 필요 (manifest.xml)
+  - 주의: 앱 종류에 따라 지원 기기가 다를 수 있음. Forerunner 255 지원 여부 실기기 확인 필요
+
+- **[확인 완료 ✅] 워치페이스 연동 불가** — Connect IQ 앱은 각자 독립된 Storage를 가지며 앱 간 데이터 공유 없음
+  - 워치페이스에서 장치 앱의 Storage를 읽는 것 불가
+  - **결론**: 장치 앱 단독으로 구현하는 현재 방향이 맞음. 워치페이스 연동은 고려 불필요
+  - **대안으로 고려 가능**: Glance(글랜스) — 버튼 한 번으로 접근하는 미니 뷰. 별도 앱이지만 장치 앱과 함께 번들 배포 가능한지 추가 확인 필요 (v2 검토 항목)
+
+---
+
+## 라이브러리 참고
+
+**Connect IQ API 문서**: https://developer.garmin.com/connect-iq/api-docs/
+
+| 모듈 | 용도 |
+|------|------|
+| `Toybox.Background` | 백그라운드 서비스 등록 및 이벤트 처리 |
+| `Toybox.Activity` | 런 중 거리 등 활동 데이터 읽기 |
+| `Toybox.ActivityMonitor` | 일별 활동 히스토리, 걸음 수, 심박수 |
+| `Toybox.Application.Storage` | 토큰·상태 영구 저장 |
+| `Toybox.Notifications` | 배고픔 알림 (지원 여부 추가 확인 필요) |
+| `Toybox.Timer` | 시간 기반 성장 처리 |
+| `Toybox.WatchUi` | 화면 렌더링, 버튼 입력(밥주기) |
 
 ### 일반 제약
 
