@@ -182,6 +182,16 @@ v2 추가 예정:
 → 거리 × 토큰 공식 = 토큰 획득 → Storage에 누적 저장
 ```
 
+### Storage 데이터 구조
+
+| 키 | 타입 | 설명 |
+|---|---|---|
+| `tokens` | Number | 보유 토큰 수 |
+| `lastFedTime` | Number | 마지막 급식 Unix timestamp |
+| `growthStage` | Number | 0=알, 1=아기, 2=어른 |
+| `qualifyingRunCount` | Number | 5km 이상 런 누적 횟수 |
+| `healthStatus` | Number | 0=정상, 1=아픔, 2=사망 |
+
 ### 필수 확인 (개발 시작 전)
 
 - **[확인 완료 ✅] 백그라운드 런 감지** — `Background.registerForActivityCompletedEvent()`로 앱이 닫혀 있어도 런 종료 이벤트 수신 가능
