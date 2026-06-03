@@ -22,9 +22,22 @@ class GamigotchiApp extends Application.AppBase {
         }
         _checkHealth();
         Background.registerForActivityCompletedEvent();
+
+        // 30초 후 temporal event (테스트용 - 실제는 5분 간격으로 변경)
+        try {
+            var testTime = Time.now().add(new Time.Duration(30));
+            Background.registerForTemporalEvent(testTime);
+        } catch (e instanceof Background.InvalidBackgroundTimeException) {
+            System.println("temporal event: too soon, skipping");
+        }
     }
 
     function onStop(state as Dictionary?) as Void {
+    }
+
+    (:background)
+    function getServiceDelegate() as Array {
+        return [new GamigotchiBackground()];
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
