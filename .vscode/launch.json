@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run - fr255 (Simulator)",
+            "request": "launch",
+            "type": "monkeyc",
+            "device": "fr255",
+            "jungleFiles": "${workspaceFolder}/monkey.jungle",
+            "developerKeyPath": "${workspaceFolder}/developer_key",
+            "generateSourceMap": true,
+            "typeCheckLevel": "Gradual"
+        }
+    ]
+}
