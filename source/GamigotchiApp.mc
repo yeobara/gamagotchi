@@ -1,5 +1,8 @@
 import Toybox.Application;
+import Toybox.Application.Storage;
+import Toybox.Background;
 import Toybox.Lang;
+import Toybox.Time;
 import Toybox.WatchUi;
 
 class GamigotchiApp extends Application.AppBase {
@@ -9,6 +12,16 @@ class GamigotchiApp extends Application.AppBase {
     }
 
     function onStart(state as Dictionary?) as Void {
+        if (Storage.getValue("initialized") == null) {
+            Storage.setValue("tokens", 0);
+            Storage.setValue("lastFedTime", Time.now().value());
+            Storage.setValue("growthStage", 0);
+            Storage.setValue("qualifyingRunCount", 0);
+            Storage.setValue("healthStatus", 0);
+            Storage.setValue("initialized", true);
+        }
+        _checkHealth();
+        Background.registerForActivityCompletedEvent();
     }
 
     function onStop(state as Dictionary?) as Void {
@@ -19,6 +32,86 @@ class GamigotchiApp extends Application.AppBase {
     }
 
     function onBackgroundData(data as Application.PersistableType) as Void {
+        if (!(data instanceof Dictionary)) { return; }
+        var d = data as Dictionary;
+
+        var earned = d.get("tokens");
+        if (earned instanceof Number) {
+            var cur = Storage.getValue("tokens");
+            var curVal = (cur instanceof Number) ? cur : 0;
+            Storage.setValue("tokens", curVal + earned);
+        }
+
+        var newCount = d.get("qualifyingRunCount");
+        if (newCount instanceof Number) {
+            Storage.setValue("qualifyingRunCount", newCount);
+            _updateGrowth();
+        }
+
+        WatchUi.requestUpdate();
+    }
+
+    function feed() as Void {
+        var t = Storage.getValue("tokens");
+        var tokens = (t instanceof Number) ? t : 0;
+        if (tokens < 1) { return; }
+        Storage.setValue("tokens", tokens - 1);
+        Storage.setValue("lastFedTime", Time.now().value());
+        Storage.setValue("healthStatus", 0);
+        WatchUi.requestUpdate();
+    }
+
+    function getTokens() as Number {
+        var t = Storage.getValue("tokens");
+        return (t instanceof Number) ? t : 0;
+    }
+
+    function getGrowthStage() as Number {
+        var g = Storage.getValue("growthStage");
+        return (g instanceof Number) ? g : 0;
+    }
+
+    function getHealthStatus() as Number {
+        var h = Storage.getValue("healthStatus");
+        return (h instanceof Number) ? h : 0;
+    }
+
+    function getLastFedTime() as Number {
+        var t = Storage.getValue("lastFedTime");
+        return (t instanceof Number) ? t : Time.now().value();
+    }
+
+    function getQualifyingRunCount() as Number {
+        var c = Storage.getValue("qualifyingRunCount");
+        return (c instanceof Number) ? c : 0;
+    }
+
+    hidden function _checkHealth() as Void {
+        var lastFed = Storage.getValue("lastFedTime");
+        if (!(lastFed instanceof Number)) { return; }
+        var elapsed = Time.now().value() - lastFed;
+        if (elapsed >= 72 * 3600) {
+            _resetCharacter();
+        } else if (elapsed >= 48 * 3600) {
+            Storage.setValue("healthStatus", 1);
+        } else {
+            Storage.setValue("healthStatus", 0);
+        }
+    }
+
+    hidden function _resetCharacter() as Void {
+        Storage.setValue("tokens", 0);
+        Storage.setValue("lastFedTime", Time.now().value());
+        Storage.setValue("growthStage", 0);
+        Storage.setValue("qualifyingRunCount", 0);
+        Storage.setValue("healthStatus", 0);
+    }
+
+    hidden function _updateGrowth() as Void {
+        var c = Storage.getValue("qualifyingRunCount");
+        var count = (c instanceof Number) ? c : 0;
+        var stage = (count >= 13) ? 2 : ((count >= 3) ? 1 : 0);
+        Storage.setValue("growthStage", stage);
     }
 }
 
