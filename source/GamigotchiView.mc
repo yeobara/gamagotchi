@@ -85,6 +85,8 @@ class GamigotchiView extends WatchUi.View {
     }
 
     private function _getBubble(app as GamigotchiApp, health as Number) as String {
+        var transient = app.getTransientMessage();
+        if (!transient.equals("")) { return transient; }
         if (health == 1) { return "so hungry..."; }
         var elapsed = Time.now().value() - app.getLastFedTime();
         if (elapsed >= 36 * 3600) { return "hungry..."; }

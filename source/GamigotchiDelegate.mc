@@ -18,12 +18,21 @@ class GamigotchiDelegate extends WatchUi.BehaviorDelegate {
         return onSelect();
     }
 
-    function onKey(keyEvent as WatchUi.KeyEvent) as Boolean {
-        if (keyEvent.getKey() == WatchUi.KEY_LIGHT) {
-            WatchUi.pushView(new GamigotchiStatusView(), new GamigotchiStatusDelegate(), WatchUi.SLIDE_UP);
-            return true;
-        }
-        return false;
+    // 왼쪽 상단(LIGHT)은 백라이트용으로 시스템이 예약해 앱까지 이벤트가 전달되지 않음
+    // (시뮬레이터에서 확인됨) → 대신 Up 버튼(왼쪽 중단)에 배치.
+    // Up이 onNextPage/onPreviousPage 중 어디로 오는지 기기마다 다를 수 있어 둘 다 처리
+    function onNextPage() as Boolean {
+        _openStatusView();
+        return true;
+    }
+
+    function onPreviousPage() as Boolean {
+        _openStatusView();
+        return true;
+    }
+
+    private function _openStatusView() as Void {
+        WatchUi.pushView(new GamigotchiStatusView(), new GamigotchiStatusDelegate(), WatchUi.SLIDE_UP);
     }
 }
 

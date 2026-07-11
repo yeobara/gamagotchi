@@ -1,5 +1,21 @@
 # 개발 노트
 
+## 캐릭터 스프라이트 + 화면 인터랙션 구현 — 삽질 기록 (2026-07-11)
+
+PIL/ImageMagick이 개발 환경에 없어서 순수 Python(`zlib`+`struct`)으로 최소 PNG 인코더를 짜서 placeholder 스프라이트 12장 생성. `resources/drawables.xml`에 비트맵 리소스로 등록하고 `WatchUi.loadResource()` + `dc.drawBitmap()`으로 연결, `Toybox.Timer`로 500ms마다 프레임 토글.
+
+로컬에 Connect IQ SDK가 있어서(`monkeyc.bat`) WSL에서 `cmd.exe`로 직접 빌드 가능. 시뮬레이터(`simulator.exe`)도 같은 방식으로 띄우고 `monkeydo.bat`으로 앱 푸시. 시뮬레이터 창을 `PrintWindow`(PW_RENDERFULLCONTENT) API로 캡처해서 렌더링 결과를 직접 확인하는 루프를 돌림 — `CopyFromScreen` + `SetForegroundWindow` 조합은 포그라운드 잠금 때문에 실패(다른 창이 찍힘), `PrintWindow`가 백그라운드 상태에서도 안정적으로 동작.
+
+**시뮬레이터 테스트에서 발견한 것들:**
+
+1. **LIGHT 버튼(왼쪽 상단)은 앱에 이벤트가 안 옴** — 백라이트 전용으로 시스템이 예약. `onKey(KEY_LIGHT)`로 가로채려 했으나 시뮬레이터에서도 반응 없음. 상태 확인 화면을 Up 버튼으로 재배치 (`onNextPage`/`onPreviousPage` 둘 다 처리 — 기기별로 Up이 어느 쪽에 매핑되는지 달라서 둘 다 구현)
+2. **한글 텍스트가 시스템 폰트에 없어 물음표 다이아몬드로 깨짐** — `dc.drawText`에 한글을 넣으면 tofu 글리프로 렌더링됨. 모든 화면 텍스트를 영어로 전환 (REQUIREMENTS.md의 말풍선 문구 기획은 한글이지만 실제 구현은 영어)
+3. **`WatchUi.loadResource()`의 반환 타입은 `WatchUi.BitmapResource`** — `Graphics.BitmapResource`로 캐스팅하면 `getWidth`/`getHeight`를 못 찾는 컴파일 에러 발생
+
+**결론**: 상태 확인 화면(Up 버튼), Feed 메뉴, 토큰 부족 피드백("no tokens...") 모두 시뮬레이터에서 실제 동작 확인 완료.
+
+---
+
 ## 백그라운드 서비스 구현 — 삽질 기록
 
 ### 뭐가 문제였나

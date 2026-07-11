@@ -7,6 +7,9 @@ import Toybox.WatchUi;
 
 class GamigotchiApp extends Application.AppBase {
 
+    private var _transientMessage as String = "";
+    private var _transientMessageUntil as Number = 0;
+
     function initialize() {
         AppBase.initialize();
     }
@@ -67,11 +70,28 @@ class GamigotchiApp extends Application.AppBase {
     function feed() as Void {
         var t = Storage.getValue("tokens");
         var tokens = (t instanceof Number) ? t : 0;
-        if (tokens < 1) { return; }
+        if (tokens < 1) {
+            _setTransientMessage("no tokens...");
+            return;
+        }
         Storage.setValue("tokens", tokens - 1);
         Storage.setValue("lastFedTime", Time.now().value());
         Storage.setValue("healthStatus", 0);
+        _setTransientMessage("yum yum!");
+    }
+
+    // 밥주기 결과 등 잠깐 보여줄 말풍선 메시지 (3초 후 자동으로 사라짐)
+    private function _setTransientMessage(msg as String) as Void {
+        _transientMessage = msg;
+        _transientMessageUntil = Time.now().value() + 5;
         WatchUi.requestUpdate();
+    }
+
+    function getTransientMessage() as String {
+        if (!_transientMessage.equals("") && Time.now().value() >= _transientMessageUntil) {
+            _transientMessage = "";
+        }
+        return _transientMessage;
     }
 
     function getTokens() as Number {
