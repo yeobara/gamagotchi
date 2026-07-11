@@ -17,6 +17,14 @@ class GamigotchiDelegate extends WatchUi.BehaviorDelegate {
     function onMenu() as Boolean {
         return onSelect();
     }
+
+    function onKey(keyEvent as WatchUi.KeyEvent) as Boolean {
+        if (keyEvent.getKey() == WatchUi.KEY_LIGHT) {
+            WatchUi.pushView(new GamigotchiStatusView(), new GamigotchiStatusDelegate(), WatchUi.SLIDE_UP);
+            return true;
+        }
+        return false;
+    }
 }
 
 class GamigotchiMenuDelegate extends WatchUi.Menu2InputDelegate {
