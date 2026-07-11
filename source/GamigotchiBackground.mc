@@ -3,6 +3,7 @@ import Toybox.Application.Storage;
 import Toybox.Background;
 import Toybox.Lang;
 import Toybox.System;
+import Toybox.Time;
 
 // Activity.SPORT_RUNNING = 1
 (:background)
@@ -27,6 +28,13 @@ class GamigotchiBackground extends System.ServiceDelegate {
         var prevDist = (prev instanceof Float) ? prev : 0.0f;
         if (dist != null && dist > prevDist) {
             Storage.setValue("lastRunDistance", dist);
+        }
+
+        // 다음 5분 뒤 이벤트 재등록 (안 하면 최초 1회만 발화하고 끝남)
+        try {
+            Background.registerForTemporalEvent(Time.now().add(new Time.Duration(5 * 60)));
+        } catch (e instanceof Background.InvalidBackgroundTimeException) {
+            System.println("onTemporalEvent: reschedule too soon, skipping");
         }
 
         Background.exit(null);
