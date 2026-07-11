@@ -22,6 +22,11 @@ class GamigotchiApp extends Application.AppBase {
             Storage.setValue("qualifyingRunCount", 0);
             Storage.setValue("healthStatus", 0);
             Storage.setValue("initialized", true);
+            // onStart() 시점엔 아직 화면이 만들어지기 전이라 WatchUi.requestUpdate()를
+            // 호출하면 안 됨(크래시) → requestUpdate 없이 상태만 세팅, 첫 onUpdate()가
+            // 알아서 그려줌
+            _transientMessage = "take care of your egg!";
+            _transientMessageUntil = Time.now().value() + 5;
         }
         _checkHealth();
         Background.registerForActivityCompletedEvent();
@@ -64,6 +69,12 @@ class GamigotchiApp extends Application.AppBase {
             _updateGrowth();
         }
 
+        WatchUi.requestUpdate();
+    }
+
+    // 사망 확인 화면에서 사용자가 SELECT를 눌렀을 때 새 알로 리셋
+    function reviveFromDeath() as Void {
+        _resetCharacter();
         WatchUi.requestUpdate();
     }
 
@@ -120,11 +131,14 @@ class GamigotchiApp extends Application.AppBase {
     }
 
     hidden function _checkHealth() as Void {
+        // 이미 사망 확인 화면 대기 중이면 사용자가 리셋할 때까지 상태 유지
+        if (getHealthStatus() == 2) { return; }
+
         var lastFed = Storage.getValue("lastFedTime");
         if (!(lastFed instanceof Number)) { return; }
         var elapsed = Time.now().value() - lastFed;
         if (elapsed >= 72 * 3600) {
-            _resetCharacter();
+            Storage.setValue("healthStatus", 2);
         } else if (elapsed >= 48 * 3600) {
             Storage.setValue("healthStatus", 1);
         } else {

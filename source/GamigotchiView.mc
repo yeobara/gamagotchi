@@ -52,6 +52,11 @@ class GamigotchiView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 30, Graphics.FONT_MEDIUM, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
+        if (health == 2) {
+            _drawDeathScreen(dc, cx, h);
+            return;
+        }
+
         // Character
         var bitmap = WatchUi.loadResource(_getCharBitmapId(stage, health, _frame)) as WatchUi.BitmapResource;
         var charY = h / 2 - 20;
@@ -68,6 +73,16 @@ class GamigotchiView extends WatchUi.View {
         var tokens = app.getTokens();
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h - 35, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    private function _drawDeathScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
+        var grave = WatchUi.loadResource(Rez.Drawables.Grave) as WatchUi.BitmapResource;
+        var charY = h / 2 - 20;
+        dc.drawBitmap(cx - grave.getWidth() / 2, charY - grave.getHeight() / 2, grave);
+
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h / 2 + 40, Graphics.FONT_TINY, "Your pet has died.", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h / 2 + 70, Graphics.FONT_XTINY, "SELECT: restart", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function _getCharBitmapId(stage as Number, health as Number, frame as Number) as ResourceId {

@@ -15,4 +15,6 @@
     <bitmap id="AdultNormal2" filename="sprites/adult_normal_2.png" />
     <bitmap id="AdultSick1" filename="sprites/adult_sick_1.png" />
     <bitmap id="AdultSick2" filename="sprites/adult_sick_2.png" />
+
+    <bitmap id="Grave" filename="sprites/grave.png" />
 </drawables>

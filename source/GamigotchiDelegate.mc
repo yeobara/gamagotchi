@@ -8,6 +8,10 @@ class GamigotchiDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
+        if (getApp().getHealthStatus() == 2) {
+            getApp().reviveFromDeath();
+            return true;
+        }
         var menu = new WatchUi.Menu2({:title => "Menu"});
         menu.addItem(new WatchUi.MenuItem("Feed", null, :feed, {}));
         WatchUi.pushView(menu, new GamigotchiMenuDelegate(), WatchUi.SLIDE_UP);
