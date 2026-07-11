@@ -2,9 +2,13 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Time;
 import Toybox.Time.Gregorian;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
 class GamigotchiView extends WatchUi.View {
+
+    private var _frame as Number = 1;
+    private var _animTimer as Timer.Timer?;
 
     function initialize() {
         View.initialize();
@@ -14,6 +18,21 @@ class GamigotchiView extends WatchUi.View {
     }
 
     function onShow() as Void {
+        // 손목 들었을 때(화면 켜질 때) 2프레임 애니메이션 시작
+        _animTimer = new Timer.Timer();
+        _animTimer.start(method(:_onAnimTick), 500, true);
+    }
+
+    function onHide() as Void {
+        if (_animTimer != null) {
+            _animTimer.stop();
+            _animTimer = null;
+        }
+    }
+
+    function _onAnimTick() as Void {
+        _frame = (_frame == 1) ? 2 : 1;
+        WatchUi.requestUpdate();
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -34,10 +53,9 @@ class GamigotchiView extends WatchUi.View {
         dc.drawText(cx, 30, Graphics.FONT_MEDIUM, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // Character
-        var charStr = _getCharStr(stage, health);
-        var charColor = (health == 1) ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE;
-        dc.setColor(charColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h / 2 - 20, Graphics.FONT_LARGE, charStr, Graphics.TEXT_JUSTIFY_CENTER);
+        var bitmap = WatchUi.loadResource(_getCharBitmapId(stage, health, _frame)) as WatchUi.BitmapResource;
+        var charY = h / 2 - 20;
+        dc.drawBitmap(cx - bitmap.getWidth() / 2, charY - bitmap.getHeight() / 2, bitmap);
 
         // Speech bubble
         var bubble = _getBubble(app, health);
@@ -52,18 +70,18 @@ class GamigotchiView extends WatchUi.View {
         dc.drawText(cx, h - 35, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function onHide() as Void {
-    }
-
-    private function _getCharStr(stage as Number, health as Number) as String {
-        if (health == 1) {
-            if (stage == 0) { return "( x_x )"; }
-            if (stage == 1) { return "(>_<)v"; }
-            return "(X_X)/";
+    private function _getCharBitmapId(stage as Number, health as Number, frame as Number) as ResourceId {
+        var sick = (health == 1);
+        if (stage == 0) {
+            if (sick) { return (frame == 1) ? Rez.Drawables.EggSick1 : Rez.Drawables.EggSick2; }
+            return (frame == 1) ? Rez.Drawables.EggNormal1 : Rez.Drawables.EggNormal2;
         }
-        if (stage == 0) { return "( o )"; }
-        if (stage == 1) { return "(^.^)v"; }
-        return "(^v^)/";
+        if (stage == 1) {
+            if (sick) { return (frame == 1) ? Rez.Drawables.BabySick1 : Rez.Drawables.BabySick2; }
+            return (frame == 1) ? Rez.Drawables.BabyNormal1 : Rez.Drawables.BabyNormal2;
+        }
+        if (sick) { return (frame == 1) ? Rez.Drawables.AdultSick1 : Rez.Drawables.AdultSick2; }
+        return (frame == 1) ? Rez.Drawables.AdultNormal1 : Rez.Drawables.AdultNormal2;
     }
 
     private function _getBubble(app as GamigotchiApp, health as Number) as String {

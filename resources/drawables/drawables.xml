@@ -1,3 +1,18 @@
 <drawables xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <bitmap id="LauncherIcon" filename="launcher_icon.svg" dithering="none" />
+
+    <bitmap id="EggNormal1" filename="sprites/egg_normal_1.png" />
+    <bitmap id="EggNormal2" filename="sprites/egg_normal_2.png" />
+    <bitmap id="EggSick1" filename="sprites/egg_sick_1.png" />
+    <bitmap id="EggSick2" filename="sprites/egg_sick_2.png" />
+
+    <bitmap id="BabyNormal1" filename="sprites/baby_normal_1.png" />
+    <bitmap id="BabyNormal2" filename="sprites/baby_normal_2.png" />
+    <bitmap id="BabySick1" filename="sprites/baby_sick_1.png" />
+    <bitmap id="BabySick2" filename="sprites/baby_sick_2.png" />
+
+    <bitmap id="AdultNormal1" filename="sprites/adult_normal_1.png" />
+    <bitmap id="AdultNormal2" filename="sprites/adult_normal_2.png" />
+    <bitmap id="AdultSick1" filename="sprites/adult_sick_1.png" />
+    <bitmap id="AdultSick2" filename="sprites/adult_sick_2.png" />
 </drawables>
