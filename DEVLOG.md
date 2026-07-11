@@ -74,5 +74,19 @@ onActivityCompleted(activity) 발화
 
 ### 미확인 사항
 
-- `Activity.getActivityInfo()`가 실제 기기에서 백그라운드 컨텍스트로 네이티브 달리기 앱 세션을 읽어오는지 → **실기기 테스트 필요**
 - Temporal Event 발화 주기를 5분보다 짧게 할 방법 없음 (플랫폼 제한)
+
+---
+
+### 실기기 검증 (2026-07-11, Forerunner 255)
+
+Temporal Event가 최초 1회만 발화하고 끝나는 문제를 발견 — `onTemporalEvent()` 안에서 `registerForTemporalEvent()`를 재호출하지 않으면 다음 이벤트가 안 잡힘. 재등록 로직 추가 후 실기기 테스트 진행.
+
+**확인 방법**: 워치가 USB(MTP) 연결 상태라 드라이브 문자가 안 잡혀서, PowerShell `Shell.Application` COM으로 MTP 네임스페이스를 직접 순회해 `GARMIN/APPS/LOGS/CIQ_LOG`, `GARMIN/APPS/DATA` 를 확인.
+
+- `CIQ_LOG` 폴더 비어있음 → 백그라운드 실행 중 예외 없음
+- `gamigotchi.DAT` (Storage 파일) 수정 시각이 정확히 5분 뒤로 찍힘 → Temporal Event 재등록이 실제로 동작 확인
+  - 단, 파일 자체는 Garmin이 암호화해서 내용은 못 읽음 (바이너리 엔트로피 확인만 가능)
+- 워치에서 앱 직접 실행해 확인 → 토큰 1개 생성됨, 메뉴 → Feed 실행 후 0으로 정상 차감
+
+**결론**: `Activity.getActivityInfo()` → `onActivityCompleted` → `Background.exit(data)` → `onBackgroundData` → `Storage` → 화면 갱신까지 실기기 전체 파이프라인 검증 완료. 이전 "미확인 사항"이었던 실기기 백그라운드 동작 항목 해소.
