@@ -68,7 +68,7 @@ class GamigotchiView extends WatchUi.View {
         // Tokens
         var tokens = app.getTokens();
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h - 30, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h - 45, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // 배고픔/행복 게이지를 가로 막대로 표시 (value: 0~100)
