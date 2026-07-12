@@ -96,6 +96,7 @@ module GamigotchiStats {
             growthStage += 1;
             healthyElapsed = 0;
             Storage.setValue("growthStage", growthStage);
+            Storage.setValue("pendingEvolution", true); // 다음에 앱 열 때 축하 연출 표시용
         }
         Storage.setValue("healthyElapsedSeconds", healthyElapsed);
     }

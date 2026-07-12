@@ -188,6 +188,7 @@ class GamigotchiApp extends Application.AppBase {
         Storage.setValue("healthyElapsedSeconds", 0);
         Storage.setValue("lastTickTime", Time.now().value());
         Storage.setValue("hungerNotified", false);
+        Storage.setValue("pendingEvolution", false);
     }
 }
 

@@ -1,5 +1,7 @@
+import Toybox.Application.Storage;
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -7,6 +9,9 @@ class GamigotchiView extends WatchUi.View {
 
     private var _frame as Number = 1;
     private var _animTimer as Timer.Timer?;
+    private var _showingEvolution as Boolean = false;
+    private var _evolutionStage as Number = 0;
+    private var _evolutionTimer as Timer.Timer?;
 
     function initialize() {
         View.initialize();
@@ -19,6 +24,15 @@ class GamigotchiView extends WatchUi.View {
         // 손목 들었을 때(화면 켜질 때) 2프레임 애니메이션 시작
         _animTimer = new Timer.Timer();
         _animTimer.start(method(:_onAnimTick), 500, true);
+
+        var pending = Storage.getValue("pendingEvolution");
+        if (pending instanceof Boolean && pending) {
+            Storage.setValue("pendingEvolution", false);
+            _showingEvolution = true;
+            _evolutionStage = getApp().getGrowthStage();
+            _evolutionTimer = new Timer.Timer();
+            _evolutionTimer.start(method(:_onEvolutionTimeout), 3500, false);
+        }
     }
 
     function onHide() as Void {
@@ -26,6 +40,15 @@ class GamigotchiView extends WatchUi.View {
             _animTimer.stop();
             _animTimer = null;
         }
+        if (_evolutionTimer != null) {
+            _evolutionTimer.stop();
+            _evolutionTimer = null;
+        }
+    }
+
+    function _onEvolutionTimeout() as Void {
+        _showingEvolution = false;
+        WatchUi.requestUpdate();
     }
 
     function _onAnimTick() as Void {
@@ -46,6 +69,11 @@ class GamigotchiView extends WatchUi.View {
 
         if (health == 2) {
             _drawDeathScreen(dc, cx, h);
+            return;
+        }
+
+        if (_showingEvolution) {
+            _drawEvolutionScreen(dc, cx, h);
             return;
         }
 
@@ -85,6 +113,30 @@ class GamigotchiView extends WatchUi.View {
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(x + 1, y + 1, fillWidth, height - 2);
         }
+    }
+
+    // 진화 축하 연출: 방사형 광선(그래픽 도형만 사용, 별도 이미지 불필요) + 새 단계 스프라이트
+    private function _drawEvolutionScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
+
+        var cy = h / 2 - 10;
+        dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
+        var rays = 12;
+        for (var i = 0; i < rays; i += 1) {
+            var angle = (Math.PI * 2 * i) / rays;
+            var len = (i % 2 == 0) ? 115 : 90;
+            var x2 = cx + (Math.sin(angle) * len).toNumber();
+            var y2 = cy - (Math.cos(angle) * len).toNumber();
+            dc.drawLine(cx, cy, x2, y2);
+        }
+
+        var bitmap = WatchUi.loadResource(_getCharBitmapId(_evolutionStage, 0, _frame)) as WatchUi.BitmapResource;
+        dc.drawBitmap(cx - bitmap.getWidth() / 2, cy - bitmap.getHeight() / 2, bitmap);
+
+        var stageName = (_evolutionStage == 1) ? "Baby" : "Adult";
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h - 60, Graphics.FONT_SMALL, "Evolved into " + stageName + "!", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function _drawDeathScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
