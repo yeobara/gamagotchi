@@ -30,4 +30,13 @@
     <bitmap id="StarEmpty" filename="icons/star_empty.png" dithering="none" />
 
     <bitmap id="Coin" filename="icons/coin.png" dithering="none" />
+
+    <bitmap id="Ground" filename="sprites/ground.png" dithering="none" />
+
+    <bitmap id="AdultWalk1" filename="sprites/adult_walk_1.png" dithering="none" />
+    <bitmap id="AdultWalk2" filename="sprites/adult_walk_2.png" dithering="none" />
+    <bitmap id="AdultWalk3" filename="sprites/adult_walk_3.png" dithering="none" />
+    <bitmap id="AdultWalk4" filename="sprites/adult_walk_4.png" dithering="none" />
+    <bitmap id="AdultWalk5" filename="sprites/adult_walk_5.png" dithering="none" />
+    <bitmap id="AdultWalk6" filename="sprites/adult_walk_6.png" dithering="none" />
 </drawables>
