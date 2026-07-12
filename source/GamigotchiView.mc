@@ -97,17 +97,14 @@ class GamigotchiView extends WatchUi.View {
         _drawTokenCount(dc, cx, h - 45, app.getTokens());
     }
 
+    // 동전 위에 실제 토큰 개수를 배지처럼 겹쳐서 표시
     private function _drawTokenCount(dc as Graphics.Dc, cx as Number, y as Number, tokens as Number) as Void {
         var coin = WatchUi.loadResource(Rez.Drawables.Coin) as WatchUi.BitmapResource;
-        var text = tokens.format("%d");
-        var textWidth = dc.getTextWidthInPixels(text, Graphics.FONT_SMALL);
-        var gap = 6;
-        var totalWidth = coin.getWidth() + gap + textWidth;
-        var startX = cx - totalWidth / 2;
+        dc.drawBitmap(cx - coin.getWidth() / 2, y - coin.getHeight() / 2, coin);
 
-        dc.drawBitmap(startX, y - coin.getHeight() / 2, coin);
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(startX + coin.getWidth() + gap, y - Graphics.getFontHeight(Graphics.FONT_SMALL) / 2, Graphics.FONT_SMALL, text, Graphics.TEXT_JUSTIFY_LEFT);
+        var text = tokens.format("%d");
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, y - Graphics.getFontHeight(Graphics.FONT_TINY) / 2, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // 배고픔/행복 게이지를 아이콘 4개(반칸 단위)로 표시 (value: 0~100)
