@@ -49,6 +49,10 @@ class GamigotchiView extends WatchUi.View {
             return;
         }
 
+        // Hunger/Happy gauges (top)
+        _drawGauge(dc, cx, 25, app.getHunger(), Graphics.COLOR_ORANGE);
+        _drawGauge(dc, cx, 38, app.getHappiness(), Graphics.COLOR_YELLOW);
+
         // Character
         var bitmap = WatchUi.loadResource(_getCharBitmapId(stage, health, _frame)) as WatchUi.BitmapResource;
         var charY = h / 2 - 10;
@@ -60,10 +64,6 @@ class GamigotchiView extends WatchUi.View {
             dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, h / 2 + 40, Graphics.FONT_TINY, bubble, Graphics.TEXT_JUSTIFY_CENTER);
         }
-
-        // Hunger/Happy gauges
-        _drawGauge(dc, cx, h / 2 + 62, app.getHunger(), Graphics.COLOR_ORANGE);
-        _drawGauge(dc, cx, h / 2 + 75, app.getHappiness(), Graphics.COLOR_YELLOW);
 
         // Tokens
         var tokens = app.getTokens();
