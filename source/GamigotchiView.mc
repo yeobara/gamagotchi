@@ -61,10 +61,30 @@ class GamigotchiView extends WatchUi.View {
             dc.drawText(cx, h / 2 + 40, Graphics.FONT_TINY, bubble, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
+        // Hunger/Happy gauges
+        _drawGauge(dc, cx, h / 2 + 62, app.getHunger(), Graphics.COLOR_ORANGE);
+        _drawGauge(dc, cx, h / 2 + 75, app.getHappiness(), Graphics.COLOR_YELLOW);
+
         // Tokens
         var tokens = app.getTokens();
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h - 35, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h - 30, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // 배고픔/행복 게이지를 가로 막대로 표시 (value: 0~100)
+    private function _drawGauge(dc as Graphics.Dc, cx as Number, y as Number, value as Float, color as Graphics.ColorType) as Void {
+        var width = 80;
+        var height = 8;
+        var x = cx - width / 2;
+
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawRectangle(x, y, width, height);
+
+        var fillWidth = ((width - 2) * value / 100.0).toNumber();
+        if (fillWidth > 0) {
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x + 1, y + 1, fillWidth, height - 2);
+        }
     }
 
     private function _drawDeathScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
