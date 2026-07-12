@@ -12,6 +12,9 @@ class GamigotchiView extends WatchUi.View {
     private var _showingEvolution as Boolean = false;
     private var _evolutionStage as Number = 0;
     private var _evolutionTimer as Timer.Timer?;
+    private var _eggEasterEgg as Boolean = false;
+
+    const EGG_EASTER_EGG_CHANCE = 5; // 알 단계에서 이 확률(%)로 "이미 펭귄인 알" 등장
 
     function initialize() {
         View.initialize();
@@ -24,6 +27,11 @@ class GamigotchiView extends WatchUi.View {
         // 손목 들었을 때(화면 켜질 때) 2프레임 애니메이션 시작
         _animTimer = new Timer.Timer();
         _animTimer.start(method(:_onAnimTick), 500, true);
+
+        // 알 단계일 때만 이스터에그 등장 여부를 세션당 한 번 굴림 (매 프레임 굴리면 깜빡거림)
+        var roll = Math.rand() % 100;
+        if (roll < 0) { roll = -roll; }
+        _eggEasterEgg = (roll < EGG_EASTER_EGG_CHANCE);
 
         var pending = Storage.getValue("pendingEvolution");
         if (pending instanceof Boolean && pending) {
@@ -171,6 +179,7 @@ class GamigotchiView extends WatchUi.View {
         var sick = (health == 1);
         if (stage == 0) {
             if (sick) { return (frame == 1) ? Rez.Drawables.EggSick1 : Rez.Drawables.EggSick2; }
+            if (_eggEasterEgg) { return Rez.Drawables.EggEaster; }
             return (frame == 1) ? Rez.Drawables.EggNormal1 : Rez.Drawables.EggNormal2;
         }
         if (stage == 1) {

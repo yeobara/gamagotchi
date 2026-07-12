@@ -18,6 +18,9 @@
 
     <bitmap id="Grave" filename="sprites/grave.png" dithering="none" />
 
+    <!-- 이스터에그: 알을 만들려다 실수로 나온 "이미 펭귄인 알". 알 단계에서 낮은 확률로 등장 -->
+    <bitmap id="EggEaster" filename="sprites/egg_easter.png" dithering="none" />
+
     <bitmap id="HeartFull" filename="icons/heart_full.png" dithering="none" />
     <bitmap id="HeartHalf" filename="icons/heart_half.png" dithering="none" />
     <bitmap id="HeartEmpty" filename="icons/heart_empty.png" dithering="none" />
