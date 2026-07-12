@@ -17,4 +17,12 @@
     <bitmap id="AdultSick2" filename="sprites/adult_sick_2.png" dithering="none" />
 
     <bitmap id="Grave" filename="sprites/grave.png" dithering="none" />
+
+    <bitmap id="HeartFull" filename="icons/heart_full.png" dithering="none" />
+    <bitmap id="HeartHalf" filename="icons/heart_half.png" dithering="none" />
+    <bitmap id="HeartEmpty" filename="icons/heart_empty.png" dithering="none" />
+
+    <bitmap id="StarFull" filename="icons/star_full.png" dithering="none" />
+    <bitmap id="StarHalf" filename="icons/star_half.png" dithering="none" />
+    <bitmap id="StarEmpty" filename="icons/star_empty.png" dithering="none" />
 </drawables>

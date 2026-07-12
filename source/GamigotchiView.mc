@@ -77,9 +77,9 @@ class GamigotchiView extends WatchUi.View {
             return;
         }
 
-        // Hunger/Happy gauges (top)
-        _drawGauge(dc, cx, 25, app.getHunger(), Graphics.COLOR_ORANGE);
-        _drawGauge(dc, cx, 38, app.getHappiness(), Graphics.COLOR_YELLOW);
+        // Hunger/Happy gauges (top) - 4 icons each, half-increments
+        _drawIconGauge(dc, cx, 8, app.getHunger(), Rez.Drawables.HeartFull, Rez.Drawables.HeartHalf, Rez.Drawables.HeartEmpty);
+        _drawIconGauge(dc, cx, 30, app.getHappiness(), Rez.Drawables.StarFull, Rez.Drawables.StarHalf, Rez.Drawables.StarEmpty);
 
         // Character
         var bitmap = WatchUi.loadResource(_getCharBitmapId(stage, health, _frame)) as WatchUi.BitmapResource;
@@ -99,19 +99,25 @@ class GamigotchiView extends WatchUi.View {
         dc.drawText(cx, h - 45, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // 배고픔/행복 게이지를 가로 막대로 표시 (value: 0~100)
-    private function _drawGauge(dc as Graphics.Dc, cx as Number, y as Number, value as Float, color as Graphics.ColorType) as Void {
-        var width = 80;
-        var height = 8;
-        var x = cx - width / 2;
+    // 배고픔/행복 게이지를 아이콘 4개(반칸 단위)로 표시 (value: 0~100)
+    private function _drawIconGauge(dc as Graphics.Dc, cx as Number, y as Number, value as Float, fullId as ResourceId, halfId as ResourceId, emptyId as ResourceId) as Void {
+        var pips = value / 100.0 * 4.0; // 0.0~4.0
+        var full = WatchUi.loadResource(fullId) as WatchUi.BitmapResource;
+        var iconW = full.getWidth();
+        var spacing = 2;
+        var totalW = iconW * 4 + spacing * 3;
+        var x = cx - totalW / 2;
 
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawRectangle(x, y, width, height);
-
-        var fillWidth = ((width - 2) * value / 100.0).toNumber();
-        if (fillWidth > 0) {
-            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(x + 1, y + 1, fillWidth, height - 2);
+        for (var i = 0; i < 4; i += 1) {
+            var id = emptyId;
+            if (pips >= i + 1) {
+                id = fullId;
+            } else if (pips >= i + 0.5) {
+                id = halfId;
+            }
+            var icon = WatchUi.loadResource(id) as WatchUi.BitmapResource;
+            dc.drawBitmap(x, y, icon);
+            x += iconW + spacing;
         }
     }
 
