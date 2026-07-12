@@ -25,4 +25,6 @@
     <bitmap id="StarFull" filename="icons/star_full.png" dithering="none" />
     <bitmap id="StarHalf" filename="icons/star_half.png" dithering="none" />
     <bitmap id="StarEmpty" filename="icons/star_empty.png" dithering="none" />
+
+    <bitmap id="Coin" filename="icons/coin.png" dithering="none" />
 </drawables>

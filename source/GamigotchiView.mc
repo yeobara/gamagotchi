@@ -93,10 +93,21 @@ class GamigotchiView extends WatchUi.View {
             dc.drawText(cx, h / 2 + 40, Graphics.FONT_TINY, bubble, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // Tokens
-        var tokens = app.getTokens();
+        // Tokens (coin icon + count)
+        _drawTokenCount(dc, cx, h - 45, app.getTokens());
+    }
+
+    private function _drawTokenCount(dc as Graphics.Dc, cx as Number, y as Number, tokens as Number) as Void {
+        var coin = WatchUi.loadResource(Rez.Drawables.Coin) as WatchUi.BitmapResource;
+        var text = tokens.format("%d");
+        var textWidth = dc.getTextWidthInPixels(text, Graphics.FONT_SMALL);
+        var gap = 6;
+        var totalWidth = coin.getWidth() + gap + textWidth;
+        var startX = cx - totalWidth / 2;
+
+        dc.drawBitmap(startX, y - coin.getHeight() / 2, coin);
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h - 45, Graphics.FONT_SMALL, tokens.format("%d") + " tokens", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(startX + coin.getWidth() + gap, y - Graphics.getFontHeight(Graphics.FONT_SMALL) / 2, Graphics.FONT_SMALL, text, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // 배고픔/행복 게이지를 아이콘 4개(반칸 단위)로 표시 (value: 0~100)
