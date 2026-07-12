@@ -1,7 +1,5 @@
 import Toybox.Graphics;
 import Toybox.Lang;
-import Toybox.Time;
-import Toybox.Time.Gregorian;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -46,12 +44,6 @@ class GamigotchiView extends WatchUi.View {
         var stage = app.getGrowthStage();
         var health = app.getHealthStatus();
 
-        // Time
-        var now = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        var timeStr = now.hour.format("%02d") + ":" + now.min.format("%02d");
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 30, Graphics.FONT_MEDIUM, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-
         if (health == 2) {
             _drawDeathScreen(dc, cx, h);
             return;
@@ -59,7 +51,7 @@ class GamigotchiView extends WatchUi.View {
 
         // Character
         var bitmap = WatchUi.loadResource(_getCharBitmapId(stage, health, _frame)) as WatchUi.BitmapResource;
-        var charY = h / 2 - 20;
+        var charY = h / 2 - 10;
         dc.drawBitmap(cx - bitmap.getWidth() / 2, charY - bitmap.getHeight() / 2, bitmap);
 
         // Speech bubble
@@ -77,7 +69,7 @@ class GamigotchiView extends WatchUi.View {
 
     private function _drawDeathScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
         var grave = WatchUi.loadResource(Rez.Drawables.Grave) as WatchUi.BitmapResource;
-        var charY = h / 2 - 20;
+        var charY = h / 2 - 10;
         dc.drawBitmap(cx - grave.getWidth() / 2, charY - grave.getHeight() / 2, grave);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
