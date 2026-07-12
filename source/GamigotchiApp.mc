@@ -88,6 +88,7 @@ class GamigotchiApp extends Application.AppBase {
         Storage.setValue("tokens", tokens - 1);
         Storage.setValue("lastFedTime", Time.now().value());
         Storage.setValue("healthStatus", 0);
+        Storage.setValue("hungerNotified", false);
         _setTransientMessage("yum yum!");
     }
 
@@ -152,6 +153,7 @@ class GamigotchiApp extends Application.AppBase {
         Storage.setValue("growthStage", 0);
         Storage.setValue("qualifyingRunCount", 0);
         Storage.setValue("healthStatus", 0);
+        Storage.setValue("hungerNotified", false);
     }
 
     hidden function _updateGrowth() as Void {

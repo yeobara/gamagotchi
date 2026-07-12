@@ -251,4 +251,7 @@ v2 추가 예정:
 
 ### 알림
 
-- **배고픔 알림 타이밍** — ✅ 확정 (2026-07-12). 마지막 급식 후 **36시간 지점에 1회만** OS 푸시 알림 발송. 인앱 말풍선이 "hungry..."로 바뀌는 시점(36h)과 동일 타이밍으로 통일, 48시간(아픈 상태) 되기 12시간 전 경고. 스팸 방지를 위해 다회 알림은 채택 안 함. **미구현** — `Toybox.Notifications` + `registerForTemporalEvent(36h 후)` 연동 필요 (manifest.xml에 `Notifications` 권한은 이미 선언됨)
+- **배고픔 알림 타이밍** — ✅ 확정 및 구현 (2026-07-12). 마지막 급식 후 **36시간 지점에 1회만** 알림 발송. 인앱 말풍선이 "hungry..."로 바뀌는 시점(36h)과 동일 타이밍으로 통일, 48시간(아픈 상태) 되기 12시간 전 경고. 스팸 방지를 위해 다회 알림은 채택 안 함.
+  - **API 변경**: 당초 `Toybox.Notifications.showNotification()`을 쓰려 했으나 `(:background)` 컨텍스트에서 `Error: Unexpected Type Error — Failed invoking <symbol>`로 크래시 (시뮬레이터 확인, Garmin 포럼에도 유사 사례 존재). 대신 이미 이 컨텍스트에서 검증된 `Background.requestApplicationWake()`로 구현 — "앱을 열어주세요" 확인 다이얼로그 방식이라 수동 알림창 느낌은 아니지만 안정적으로 동작.
+  - 이에 따라 `Notifications` uses-permission은 불필요해서 manifest.xml에서 제거함
+  - `GamigotchiBackground._checkHungerNotification()`에 구현, `GamigotchiApp.feed()`/`_resetCharacter()`에서 `hungerNotified` 플래그 리셋

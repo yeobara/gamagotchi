@@ -1,5 +1,23 @@
 # 개발 노트
 
+## 배고픔 알림 구현 (2026-07-12)
+
+36시간 미급식 시 알림을 보내는 기능. 문서상 `Toybox.Notifications.showNotification()`이 "배경에서 사용자에게 알리는" 용도로 명시되어 있어서(API 5.1.0) 이걸로 구현했으나, `(:background)` 컨텍스트(`GamigotchiBackground.onTemporalEvent()` 안)에서 호출하면 시뮬레이터에서 바로 크래시:
+
+```
+Error: Unexpected Type Error
+Details: Failed invoking <symbol>
+Stack: - _checkHungerNotification() at GamigotchiBackground.mc:58
+```
+
+Garmin 포럼 검색 결과 비슷한 "Failed invoking symbol" 사례들이 background 컨텍스트에서 모듈/심볼이 제대로 로드 안 되는 문제로 보고되어 있음 — 공식 문서가 background 사용을 권장한다고 해서 실제로 background 심볼 테이블에 포함되어 있다는 보장은 없다는 교훈.
+
+**해결**: 이미 이 컨텍스트에서 문제없이 쓰던 `Toybox.Background` 모듈의 `requestApplicationWake(message)`로 교체. "앱 실행 확인 다이얼로그" 방식이라 UX는 다르지만(수동 알림 배너가 아니라 확인창), 크래시 없이 동작 확인. `Notifications` uses-permission도 더 이상 필요 없어 manifest.xml에서 제거.
+
+**시뮬레이터 한계**: 확인 다이얼로그가 뜬 뒤 자동으로 상호작용되는 것처럼 보여(사람이 응답 안 해도 다음 스크린샷에서 앱 메뉴 화면으로 넘어가 있음) 실제 다이얼로그 문구/외형은 시뮬레이터로 완전히 재현 안 됨 → 실기기 확인 필요.
+
+---
+
 ## 오늘 작업 요약 (2026-07-11)
 
 1. **백그라운드 재등록 버그 수정 + 실기기 검증** — Temporal Event 최초 1회만 발화하던 버그 수정, Forerunner 255 실기기에서 백그라운드→토큰→Feed 전체 파이프라인 확인 (→ [실기기 검증](#실기기-검증-2026-07-11-forerunner-255))

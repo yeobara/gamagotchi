@@ -30,6 +30,8 @@ class GamigotchiBackground extends System.ServiceDelegate {
             Storage.setValue("lastRunDistance", dist);
         }
 
+        _checkHungerNotification();
+
         // 다음 5분 뒤 이벤트 재등록 (안 하면 최초 1회만 발화하고 끝남)
         try {
             Background.registerForTemporalEvent(Time.now().add(new Time.Duration(5 * 60)));
@@ -38,6 +40,28 @@ class GamigotchiBackground extends System.ServiceDelegate {
         }
 
         Background.exit(null);
+    }
+
+    // 마지막 급식 후 36시간 지점에 1회만 배고픔 알림 발송
+    // (48시간 = 아픈 상태 되기 12시간 전 경고). feed() 시 hungerNotified 플래그 리셋됨
+    //
+    // Notifications.showNotification()은 배경(:background) 컨텍스트에서
+    // "Unexpected Type Error - Failed invoking <symbol>"로 크래시남 (시뮬레이터 확인).
+    // 이미 이 컨텍스트에서 정상 동작 중인 Background 모듈의 requestApplicationWake()로 대체.
+    // requestApplicationWake() 호출 뒤 반드시 Background.exit()가 이어져야 확인 다이얼로그가 뜸.
+    private function _checkHungerNotification() as Void {
+        var lastFed = Storage.getValue("lastFedTime");
+        if (!(lastFed instanceof Number)) { return; }
+
+        var notified = Storage.getValue("hungerNotified");
+        var alreadyNotified = (notified instanceof Boolean) ? notified : false;
+        if (alreadyNotified) { return; }
+
+        var elapsed = Time.now().value() - lastFed;
+        if (elapsed >= 36 * 3600) {
+            Background.requestApplicationWake("Your penguin is hungry!");
+            Storage.setValue("hungerNotified", true);
+        }
     }
 
     function onActivityCompleted(activity) as Void {
