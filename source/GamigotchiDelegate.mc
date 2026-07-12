@@ -14,6 +14,9 @@ class GamigotchiDelegate extends WatchUi.BehaviorDelegate {
         }
         var menu = new WatchUi.Menu2({:title => "Menu"});
         menu.addItem(new WatchUi.MenuItem("Feed", null, :feed, {}));
+        menu.addItem(new WatchUi.MenuItem("Play", null, :play, {}));
+        menu.addItem(new WatchUi.MenuItem("Clean", null, :clean, {}));
+        menu.addItem(new WatchUi.MenuItem("Medicine", null, :medicine, {}));
         WatchUi.pushView(menu, new GamigotchiMenuDelegate(), WatchUi.SLIDE_UP);
         return true;
     }
@@ -47,8 +50,15 @@ class GamigotchiMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        if (item.getId() == :feed) {
+        var id = item.getId();
+        if (id == :feed) {
             getApp().feed();
+        } else if (id == :play) {
+            getApp().play();
+        } else if (id == :clean) {
+            getApp().clean();
+        } else if (id == :medicine) {
+            getApp().giveMedicine();
         }
         WatchUi.popView(WatchUi.SLIDE_DOWN);
     }

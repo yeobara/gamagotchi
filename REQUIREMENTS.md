@@ -2,7 +2,7 @@
 
 ## 핵심 게임 루프
 
-**⚠️ v1 코어 시스템 재설계 확정 (2026-07-12)** — 아래는 새 설계. 실제 코드(`GamigotchiApp.mc` 등)는 아직 이전 버전(런 횟수 기반 성장, `healthStatus` 0/1/2 단일 축, `feed()` 1개만 있음)이라 **구현 반영 필요**. DEVLOG.md에 마이그레이션 작업 시 참고용으로 이전 설계도 남겨둠.
+**✅ v1 코어 시스템 재설계 구현 완료 (2026-07-12)** — `GamigotchiStats.mc`(공용 게이지/타이머 모듈) 신설 + `GamigotchiApp.mc`/`GamigotchiBackground.mc`/`GamigotchiDelegate.mc`/`GamigotchiStatusView.mc` 마이그레이션. 시뮬레이터에서 배고픔 감소→아픔→사망, 알→아기→어른 성장 전 구간 자동 검증 완료 (DEVLOG.md 참고). Feed/Play/Clean/Medicine 메뉴 액션과 사망 리셋은 코드 패턴상 안전하지만 버튼 입력이 필요해 아직 실사용자 클릭 검증 전.
 
 ```
 달리기 → 토큰 획득 → Feed(배고픔 회복) / Play(행복 회복) / Clean(응아 제거) / Medicine(아픈 상태 회복)
@@ -227,26 +227,23 @@ v2 추가 예정:
 → 거리 × 토큰 공식 = 토큰 획득 → Storage에 누적 저장
 ```
 
-### Storage 데이터 구조
+### Storage 데이터 구조 (게이지 시스템, 2026-07-12 구현 완료)
 
-**⚠️ 아래는 게이지 시스템 도입 전(런 횟수 기반) 스키마 — 실제 현재 코드 상태.** 마이그레이션 시 교체 필요, 초안은 다음과 같음:
-
-| 키 (기존, 코드에 존재) | 타입 | 설명 |
+| 키 | 타입 | 설명 |
 |---|---|---|
 | `tokens` | Number | 보유 토큰 수 |
-| `lastFedTime` | Number | 마지막 급식 Unix timestamp |
 | `growthStage` | Number | 0=알, 1=아기, 2=어른 |
-| `qualifyingRunCount` | Number | 5km 이상 런 누적 횟수 (게이지제 전환 시 용도 폐기 예정) |
-| `healthStatus` | Number | 0=정상, 1=아픔, 2=사망 (게이지제 전환 시 "게이지=0"으로 대체 예정) |
-| `hungerNotified` | Boolean | 배고픔 알림 중복 발송 방지 플래그 |
-
-| 키 (신규, 게이지 시스템 — 아직 미구현) | 타입 | 설명 |
-|---|---|---|
-| `hunger` | Number | 배고픔 게이지 (0~100) |
-| `happiness` | Number | 행복 게이지 (0~100) |
+| `healthStatus` | Number | 0=정상, 1=아픔, 2=사망 |
+| `hunger` | Float | 배고픔 게이지 (0~100) |
+| `happiness` | Float | 행복 게이지 (0~100) |
 | `poopCount` | Number | 쌓인 응아 개수 |
+| `poopAccumSeconds` | Number | 다음 응아 발생까지 누적된 시간 |
 | `healthyElapsedSeconds` | Number | 두 게이지가 기준치 이상으로 유지된 누적 시간(성장 타이머) |
 | `lastTickTime` | Number | 게이지 감소량 계산용 마지막 업데이트 시각 |
+| `sickSinceTime` | Number | 아픈 상태 진입 시각 (사망 판정용) |
+| `hungerNotified` | Boolean | 배고픔 알림 중복 발송 방지 플래그 |
+
+`qualifyingRunCount`, `lastFedTime`은 게이지 시스템 도입으로 폐기됨.
 
 ### 필수 확인 (개발 시작 전)
 
@@ -299,10 +296,9 @@ v2 추가 예정:
 ### 엣지 케이스
 
 - **토큰 부족 시 밥주기 시도** — ✅ 해결. 말풍선 "no tokens..." 5초간 표시 (`GamigotchiApp.feed()`)
-- **밥주기 1회 소모 토큰** — ⚠️ **재검토 필요** (2026-07-12 게이지 시스템 도입으로 전제가 바뀜). 기존엔 "1개 소모 = 배고픔 완전 리셋"이었는데, 게이지제로 바뀌면서 "1회 Feed = 배고픔 게이지 +N" 식으로 재정의해야 함. Play/Medicine 소모량도 같이 정해야 함 — 밸런스 조정 단계로 이월
+- **밥주기/놀아주기/약 소모 토큰** — ✅ 구현 완료 (2026-07-12, 수치는 가안). Feed 1토큰(배고픔+40), Play 1토큰(행복+40), Medicine 3토큰(두 게이지 모두 건강 임계값 50까지 회복), Clean은 토큰 소모 없음. `GamigotchiApp.mc`의 `FEED_COST`/`PLAY_COST`/`MEDICINE_COST` 상수 — 밸런스 조정 단계에서 재조정 가능
 
 ### 알림
 
-- **배고픔 알림 타이밍** — ⚠️ **재검토 필요** (2026-07-12). 아래는 구현은 되어있으나 "48시간 미급식" 전제로 짜여진 로직이라, 게이지 시스템(연속값)으로 바뀌면 트리거 조건을 "배고픔 게이지가 N 이하로 떨어지면"으로 다시 정의해야 함
-  - **기존 구현 (마이그레이션 전)**: 마지막 급식 후 36시간 지점에 1회만 알림. `GamigotchiBackground._checkHungerNotification()`에 있음
-  - **API 관련 결정은 유지**: `Toybox.Notifications.showNotification()`이 `(:background)` 컨텍스트에서 크래시나서(`Error: Unexpected Type Error — Failed invoking <symbol>`, 시뮬레이터 확인, Garmin 포럼에도 유사 사례) `Background.requestApplicationWake()`로 구현한 것은 게이지 시스템으로 바뀌어도 그대로 유효 — 트리거 조건(언제 부를지)만 게이지 기준으로 교체하면 됨
+- **배고픔 알림 타이밍** — ✅ 구현 완료 (2026-07-12). 배고픔 또는 행복 게이지가 **30 이하**로 떨어지면 1회 알림 (`GamigotchiBackground.ALERT_THRESHOLD`), 게이지가 30 초과로 회복되면 알림 플래그가 풀려 다음 위기 때 다시 알림 가능
+  - `Toybox.Notifications.showNotification()`이 `(:background)` 컨텍스트에서 크래시나서(`Error: Unexpected Type Error — Failed invoking <symbol>`, 시뮬레이터 확인, Garmin 포럼에도 유사 사례) `Background.requestApplicationWake()`로 구현

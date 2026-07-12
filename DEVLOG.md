@@ -1,5 +1,42 @@
 # 개발 노트
 
+## 오늘 작업 요약 (2026-07-12)
+
+1. **배고픔 알림 구현** — 36시간 미급식 시 1회 알림 (이후 게이지 시스템으로 트리거 조건 교체됨)
+2. **픽셀 아트 기획 정리** — PixelLab.ai MCP 연동 방법 조사, 4단계(알/유년/청년/노년) 캐릭터 컨셉 검토, 실루엣 우선 원칙 확인
+3. **코어 시스템 재설계 결정** — 런 횟수 기반 성장 → 배고픔/행복 게이지 + 시간 기반 성장으로 전환, Feed/Play/Clean/Medicine 4액션 확정
+4. **코드 마이그레이션 완료** — `GamigotchiStats.mc` 신설, 관련 파일 전부 갱신, 시뮬레이터로 성장/아픔/사망 전 구간 자동 검증
+
+**남은 것**: Feed/Play/Clean/Medicine 버튼 액션과 사망 리셋은 사람이 직접 눌러서 확인 필요 (자동화 한계). 픽셀 아트 실제 에셋 제작.
+
+---
+
+## 게이지 기반 코어 시스템 마이그레이션 (2026-07-12)
+
+런 횟수 기반 성장 → 배고픔/행복 게이지 + 시간 기반 성장으로 전면 교체. 새 파일 `GamigotchiStats.mc`(모듈)에 tick/decay/성장 타이머 로직을 몰아넣고, `GamigotchiApp.mc`/`GamigotchiBackground.mc`/`GamigotchiDelegate.mc`/`GamigotchiStatusView.mc`가 이걸 갖다 씀. 상세 설계는 REQUIREMENTS.md 참고.
+
+**가장 큰 삽질 — 모듈 함수는 `public` 없으면 크로스 파일 호출이 런타임에 죽는다.**
+
+`GamigotchiStats` 모듈에 함수를 만들고 아무 접근제어자 없이 그대로 뒀더니, `GamigotchiApp.onStart()`에서 `GamigotchiStats.tick()`을 부르는 순간 컴파일은 멀쩡히 되는데 실행하면 크래시:
+
+```
+Error: Illegal Access (Out of Bounds)
+Details: Failed invoking <symbol>
+Stack: - onStart() at GamigotchiApp.mc:33
+```
+
+같은 파일 안에서 부르는 게 아니라 **다른 파일에서 모듈 함수를 부를 때는 `public function`으로 명시해야** 함. `private`/`hidden` 키워드는 모듈 레벨에서 아예 문법 에러(`extraneous input`)— 모듈 함수는 기본이 `public`도 `hidden`도 아닌 애매한 상태였다가, 명시적으로 `public`을 붙이니 해결됨. 오늘 벌써 세 번째로 겪는 "컴파일은 되는데 런타임에 Failed invoking symbol로 죽는" 패턴 — Monkey C는 이 클래스의 링크 문제를 컴파일 타임에 못 잡아준다는 걸 체감함.
+
+부수적으로: `module` 블록 안에서는 `Toybox.System` 같은 것도 클래스와 달리 암묵적으로 안 열려 있어서, `System.println` 쓰려면 `import Toybox.System`을 명시해야 했음 (클래스에서는 왜인지 import 없이도 됐었는데, 모듈은 다름).
+
+**모니터링 중 헷갈렸던 것**: `monkeydo`로 재실행할 때마다 이전 실행에서 났던 크래시 로그가 디버그 콘솔에 다시 찍혀서 나옴 (연결이 새로 붙을 때 버퍼된 이전 로그를 재생하는 듯). 실제로는 크래시 안 났는데 로그만 보면 크래시난 것처럼 보여서 헷갈림 — 스크린샷으로 실제 화면 상태를 같이 봐야 진짜 크래시인지 판단 가능.
+
+**시뮬레이터 자동 입력**: 물리 버튼 클릭은 반응 없음(터치스크린 없는 기기라 마우스 클릭이 안 먹히는 듯). `SendKeys`로 키보드 입력은 성공했는데(Alt 탭 트릭으로 포그라운드 잠금 우회), 실제 SELECT 버튼에 대응하는 키를 못 찾음 — `{ENTER}`는 예상과 다르게 Up 버튼(상태 화면 열기)에 매핑됨. Feed/Play/Clean/Medicine처럼 메뉴 선택이 필요한 액션은 결국 사람이 눌러야 검증 가능. 성장/아픔/사망처럼 자동으로(버튼 없이) 진행되는 로직은 시뮬레이터 재실행만으로 전부 자동 검증함 (임시로 감소 속도/임계값을 극단적으로 낮춰서 알→아기→어른, 정상→아픔→사망 전 구간 스크린샷으로 확인).
+
+시뮬레이터 persisted storage 파일 위치도 확인함: `%LOCALAPPDATA%\Temp\com.garmin.connectiq\GARMIN\APPS\DATA\{앱이름}.DAT/.IDX/.IMT` — 이 파일들 지우면 다음 실행이 완전 첫 실행(재설치)처럼 됨. 실기기 리셋 없이 "새 알" 상태로 빠르게 되돌릴 때 유용.
+
+---
+
 ## 배고픔 알림 구현 (2026-07-12)
 
 36시간 미급식 시 알림을 보내는 기능. 문서상 `Toybox.Notifications.showNotification()`이 "배경에서 사용자에게 알리는" 용도로 명시되어 있어서(API 5.1.0) 이걸로 구현했으나, `(:background)` 컨텍스트(`GamigotchiBackground.onTemporalEvent()` 안)에서 호출하면 시뮬레이터에서 바로 크래시:

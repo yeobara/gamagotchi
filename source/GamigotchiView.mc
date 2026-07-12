@@ -103,8 +103,8 @@ class GamigotchiView extends WatchUi.View {
         var transient = app.getTransientMessage();
         if (!transient.equals("")) { return transient; }
         if (health == 1) { return "so hungry..."; }
-        var elapsed = Time.now().value() - app.getLastFedTime();
-        if (elapsed >= 36 * 3600) { return "hungry..."; }
+        if (app.getHunger() <= 30.0 || app.getHappiness() <= 30.0) { return "hungry..."; }
+        if (app.getPoopCount() > 0) { return "clean me up..."; }
         return "";
     }
 }

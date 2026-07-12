@@ -7,6 +7,12 @@ import Toybox.WatchUi;
 
 class GamigotchiApp extends Application.AppBase {
 
+    const FEED_COST = 1;
+    const FEED_AMOUNT = 40.0;
+    const PLAY_COST = 1;
+    const PLAY_AMOUNT = 40.0;
+    const MEDICINE_COST = 3;
+
     private var _transientMessage as String = "";
     private var _transientMessageUntil as Number = 0;
 
@@ -16,11 +22,7 @@ class GamigotchiApp extends Application.AppBase {
 
     function onStart(state as Dictionary?) as Void {
         if (Storage.getValue("initialized") == null) {
-            Storage.setValue("tokens", 0);
-            Storage.setValue("lastFedTime", Time.now().value());
-            Storage.setValue("growthStage", 0);
-            Storage.setValue("qualifyingRunCount", 0);
-            Storage.setValue("healthStatus", 0);
+            _resetCharacter();
             Storage.setValue("initialized", true);
             // onStart() 시점엔 아직 화면이 만들어지기 전이라 WatchUi.requestUpdate()를
             // 호출하면 안 됨(크래시) → requestUpdate 없이 상태만 세팅, 첫 onUpdate()가
@@ -28,7 +30,7 @@ class GamigotchiApp extends Application.AppBase {
             _transientMessage = "take care of your egg!";
             _transientMessageUntil = Time.now().value() + 5;
         }
-        _checkHealth();
+        GamigotchiStats.tick(); // 앱이 닫혀있던 동안 밀린 게이지 감소분 반영
         Background.registerForActivityCompletedEvent();
 
         // 30초 후 temporal event (테스트용 - 실제는 5분 간격으로 변경)
@@ -63,36 +65,58 @@ class GamigotchiApp extends Application.AppBase {
             Storage.setValue("tokens", curVal + earned);
         }
 
-        var newCount = d.get("qualifyingRunCount");
-        if (newCount instanceof Number) {
-            Storage.setValue("qualifyingRunCount", newCount);
-            _updateGrowth();
-        }
-
-        WatchUi.requestUpdate();
-    }
-
-    // 사망 확인 화면에서 사용자가 SELECT를 눌렀을 때 새 알로 리셋
-    function reviveFromDeath() as Void {
-        _resetCharacter();
         WatchUi.requestUpdate();
     }
 
     function feed() as Void {
-        var t = Storage.getValue("tokens");
-        var tokens = (t instanceof Number) ? t : 0;
-        if (tokens < 1) {
+        var tokens = getTokens();
+        if (tokens < FEED_COST) {
             _setTransientMessage("no tokens...");
             return;
         }
-        Storage.setValue("tokens", tokens - 1);
-        Storage.setValue("lastFedTime", Time.now().value());
-        Storage.setValue("healthStatus", 0);
-        Storage.setValue("hungerNotified", false);
+        Storage.setValue("tokens", tokens - FEED_COST);
+        GamigotchiStats.addGauge("hunger", FEED_AMOUNT);
         _setTransientMessage("yum yum!");
     }
 
-    // 밥주기 결과 등 잠깐 보여줄 말풍선 메시지 (3초 후 자동으로 사라짐)
+    function play() as Void {
+        var tokens = getTokens();
+        if (tokens < PLAY_COST) {
+            _setTransientMessage("no tokens...");
+            return;
+        }
+        Storage.setValue("tokens", tokens - PLAY_COST);
+        GamigotchiStats.addGauge("happiness", PLAY_AMOUNT);
+        _setTransientMessage("wheee!");
+    }
+
+    function clean() as Void {
+        if (getPoopCount() < 1) {
+            _setTransientMessage("all clean!");
+            return;
+        }
+        Storage.setValue("poopCount", 0);
+        _setTransientMessage("cleaned up!");
+    }
+
+    function giveMedicine() as Void {
+        if (getHealthStatus() != 1) {
+            _setTransientMessage("not sick");
+            return;
+        }
+        var tokens = getTokens();
+        if (tokens < MEDICINE_COST) {
+            _setTransientMessage("no tokens...");
+            return;
+        }
+        Storage.setValue("tokens", tokens - MEDICINE_COST);
+        GamigotchiStats.addGauge("hunger", GamigotchiStats.HEALTHY_THRESHOLD);
+        GamigotchiStats.addGauge("happiness", GamigotchiStats.HEALTHY_THRESHOLD);
+        Storage.setValue("healthStatus", 0);
+        _setTransientMessage("feeling better!");
+    }
+
+    // 액션 결과 등 잠깐 보여줄 말풍선 메시지 (5초 후 자동으로 사라짐)
     private function _setTransientMessage(msg as String) as Void {
         _transientMessage = msg;
         _transientMessageUntil = Time.now().value() + 5;
@@ -121,46 +145,49 @@ class GamigotchiApp extends Application.AppBase {
         return (h instanceof Number) ? h : 0;
     }
 
-    function getLastFedTime() as Number {
-        var t = Storage.getValue("lastFedTime");
-        return (t instanceof Number) ? t : Time.now().value();
+    function getHunger() as Float {
+        return GamigotchiStats.getGauge("hunger");
     }
 
-    function getQualifyingRunCount() as Number {
-        var c = Storage.getValue("qualifyingRunCount");
+    function getHappiness() as Float {
+        return GamigotchiStats.getGauge("happiness");
+    }
+
+    function getPoopCount() as Number {
+        var c = Storage.getValue("poopCount");
         return (c instanceof Number) ? c : 0;
     }
 
-    hidden function _checkHealth() as Void {
-        // 이미 사망 확인 화면 대기 중이면 사용자가 리셋할 때까지 상태 유지
-        if (getHealthStatus() == 2) { return; }
-
-        var lastFed = Storage.getValue("lastFedTime");
-        if (!(lastFed instanceof Number)) { return; }
-        var elapsed = Time.now().value() - lastFed;
-        if (elapsed >= 72 * 3600) {
-            Storage.setValue("healthStatus", 2);
-        } else if (elapsed >= 48 * 3600) {
-            Storage.setValue("healthStatus", 1);
-        } else {
-            Storage.setValue("healthStatus", 0);
+    // 현재 단계에서 다음 진화까지 진행률 (0.0~1.0)
+    function getGrowthProgress() as Float {
+        var stage = getGrowthStage();
+        if (stage >= GamigotchiStats.STAGE_THRESHOLDS_SEC.size()) {
+            return 1.0;
         }
+        var elapsed = Storage.getValue("healthyElapsedSeconds");
+        var elapsedVal = (elapsed instanceof Number) ? elapsed : 0;
+        var threshold = GamigotchiStats.STAGE_THRESHOLDS_SEC[stage];
+        var progress = elapsedVal.toFloat() / threshold.toFloat();
+        return (progress > 1.0) ? 1.0 : progress;
+    }
+
+    // 사망 확인 화면에서 사용자가 SELECT를 눌렀을 때 새 알로 리셋
+    function reviveFromDeath() as Void {
+        _resetCharacter();
+        WatchUi.requestUpdate();
     }
 
     hidden function _resetCharacter() as Void {
         Storage.setValue("tokens", 0);
-        Storage.setValue("lastFedTime", Time.now().value());
         Storage.setValue("growthStage", 0);
-        Storage.setValue("qualifyingRunCount", 0);
         Storage.setValue("healthStatus", 0);
+        Storage.setValue("hunger", GamigotchiStats.GAUGE_MAX);
+        Storage.setValue("happiness", GamigotchiStats.GAUGE_MAX);
+        Storage.setValue("poopCount", 0);
+        Storage.setValue("poopAccumSeconds", 0);
+        Storage.setValue("healthyElapsedSeconds", 0);
+        Storage.setValue("lastTickTime", Time.now().value());
         Storage.setValue("hungerNotified", false);
-    }
-
-    hidden function _updateGrowth() as Void {
-        var c = Storage.getValue("qualifyingRunCount");
-        var count = (c instanceof Number) ? c : 0;
-        var stage = (count >= 13) ? 2 : ((count >= 3) ? 1 : 0);
-        Storage.setValue("growthStage", stage);
     }
 }
 
