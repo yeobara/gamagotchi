@@ -48,13 +48,14 @@ module GamigotchiStats {
 
         _accumulatePoop(elapsedSec);
 
-        var isCriticallyLow = (hunger <= 0.0) || (happiness <= 0.0);
-        if (isCriticallyLow) {
+        // 아픔/사망은 배고픔 단독 트리거 (행복 0은 소프트 실패 - 성장만 멈추고 안 죽음)
+        if (hunger <= 0.0) {
             _handleCriticalGauge(healthStatus, now);
-        } else {
-            if (healthStatus == 1) {
-                Storage.setValue("healthStatus", 0);
-            }
+        } else if (healthStatus == 1) {
+            Storage.setValue("healthStatus", 0);
+        }
+
+        if (hunger >= HEALTHY_THRESHOLD && happiness >= HEALTHY_THRESHOLD) {
             _accumulateGrowth(elapsedSec);
         }
     }

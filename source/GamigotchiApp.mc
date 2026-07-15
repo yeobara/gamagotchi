@@ -2,22 +2,32 @@ import Toybox.Application;
 import Toybox.Application.Storage;
 import Toybox.Background;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.Time;
+import Toybox.Time.Gregorian;
 import Toybox.WatchUi;
 
 class GamigotchiApp extends Application.AppBase {
 
     const FEED_COST = 1;
     const FEED_AMOUNT = 40.0;
-    const PLAY_COST = 1;
     const PLAY_AMOUNT = 40.0;
+    const PLAY_HUNGER_COST = 5.0; // Play는 토큰 대신 배고픔을 소모 (2026-07-14: 10→5, 체감상 과하다는 피드백으로 완화)
     const MEDICINE_COST = 3;
+
+    // 토큰 이중 상한 (2026-07-13 확정, 2026-07-15 구현)
+    const DAILY_TOKEN_CAP = 10; // 하루 획득 한도 - 매일 리셋
+    const WALLET_TOKEN_CAP = 30; // 지갑 보유 한도
+
+    // 방향 B: 긍정적 가변 보상 (2026-07-15 구현) - 런 종료 보너스는 GamigotchiBackground.BONUS_TOKEN_CHANCE_PCT
+    const SPECIAL_REACTION_CHANCE_PCT = 15; // Feed/Play 시 특별 리액션 확률
 
     private var _transientMessage as String = "";
     private var _transientMessageUntil as Number = 0;
 
     function initialize() {
         AppBase.initialize();
+        Math.srand(Time.now().value());
     }
 
     function onStart(state as Dictionary?) as Void {
@@ -33,10 +43,9 @@ class GamigotchiApp extends Application.AppBase {
         GamigotchiStats.tick(); // 앱이 닫혀있던 동안 밀린 게이지 감소분 반영
         Background.registerForActivityCompletedEvent();
 
-        // 30초 후 temporal event (테스트용 - 실제는 5분 간격으로 변경)
+        // 5분 후 temporal event (이후 GamigotchiBackground.onTemporalEvent()가 5분 간격으로 재등록)
         try {
-            var testTime = Time.now().add(new Time.Duration(30));
-            Background.registerForTemporalEvent(testTime);
+            Background.registerForTemporalEvent(Time.now().add(new Time.Duration(5 * 60)));
         } catch (e instanceof Background.InvalidBackgroundTimeException) {
             System.println("temporal event: too soon, skipping");
         }
@@ -60,12 +69,51 @@ class GamigotchiApp extends Application.AppBase {
 
         var earned = d.get("tokens");
         if (earned instanceof Number) {
-            var cur = Storage.getValue("tokens");
-            var curVal = (cur instanceof Number) ? cur : 0;
-            Storage.setValue("tokens", curVal + earned);
+            var granted = _creditTokens(earned);
+            var bonus = d.get("bonus");
+            if (granted > 0 && bonus instanceof Boolean && bonus) {
+                _setTransientMessage("bonus tokens!! x2!");
+            }
         }
 
         WatchUi.requestUpdate();
+    }
+
+    // 하루 획득 한도(DAILY_TOKEN_CAP)와 지갑 보유 한도(WALLET_TOKEN_CAP)를 함께 적용해 토큰 지급.
+    // 실제로 지갑에 들어간 양만 "오늘 획득량"으로 집계 - 지갑이 가득 차 막힌 만큼은
+    // 하루 한도를 깎지 않아서, 나중에 토큰을 써서 지갑에 여유가 생기면 같은 날 안에도 다시 채울 수 있음
+    private function _creditTokens(earned as Number) as Number {
+        var todayKey = _currentDayKey();
+        var storedDay = Storage.getValue("dailyTokenDay");
+        var dailyEarned = 0;
+        if (storedDay instanceof Number && storedDay == todayKey) {
+            var de = Storage.getValue("dailyTokenEarned");
+            dailyEarned = (de instanceof Number) ? de : 0;
+        } else {
+            Storage.setValue("dailyTokenDay", todayKey);
+        }
+
+        var dailyRemaining = DAILY_TOKEN_CAP - dailyEarned;
+        if (dailyRemaining < 0) { dailyRemaining = 0; }
+
+        var cur = getTokens();
+        var walletRemaining = WALLET_TOKEN_CAP - cur;
+        if (walletRemaining < 0) { walletRemaining = 0; }
+
+        var grantable = earned;
+        if (grantable > dailyRemaining) { grantable = dailyRemaining; }
+        if (grantable > walletRemaining) { grantable = walletRemaining; }
+        if (grantable <= 0) { return 0; }
+
+        Storage.setValue("dailyTokenEarned", dailyEarned + grantable);
+        Storage.setValue("tokens", cur + grantable);
+        return grantable;
+    }
+
+    // 로컬 달력 날짜를 하나의 정수로 표현 (일일 한도 리셋 판정용)
+    private function _currentDayKey() as Number {
+        var info = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        return (info.year * 10000) + (info.month * 100) + info.day;
     }
 
     function feed() as Void {
@@ -76,18 +124,19 @@ class GamigotchiApp extends Application.AppBase {
         }
         Storage.setValue("tokens", tokens - FEED_COST);
         GamigotchiStats.addGauge("hunger", FEED_AMOUNT);
-        _setTransientMessage("yum yum!");
+        _setTransientMessage(_maybeSpecial("yum yum!", "SO yummy!! best meal ever!"));
     }
 
     function play() as Void {
-        var tokens = getTokens();
-        if (tokens < PLAY_COST) {
-            _setTransientMessage("no tokens...");
-            return;
-        }
-        Storage.setValue("tokens", tokens - PLAY_COST);
         GamigotchiStats.addGauge("happiness", PLAY_AMOUNT);
-        _setTransientMessage("wheee!");
+        GamigotchiStats.addGauge("hunger", -PLAY_HUNGER_COST);
+        _setTransientMessage(_maybeSpecial("wheee!", "wheee!! best day ever!!"));
+    }
+
+    // 낮은 확률(SPECIAL_REACTION_CHANCE_PCT)로 평소보다 신난 리액션 문구를 대신 보여줌
+    // (방향 B: 긍정적 가변 보상 - 부정적 랜덤은 절대 섞지 않음)
+    private function _maybeSpecial(normal as String, special as String) as String {
+        return ((Math.rand() % 100) < SPECIAL_REACTION_CHANCE_PCT) ? special : normal;
     }
 
     function clean() as Void {
@@ -178,7 +227,7 @@ class GamigotchiApp extends Application.AppBase {
     }
 
     hidden function _resetCharacter() as Void {
-        Storage.setValue("tokens", 0);
+        Storage.setValue("tokens", 30); // ⚠️ TEST ONLY (2026-07-15): 실기기 테스트용, 릴리즈 전 0으로 원복 필수
         Storage.setValue("growthStage", 0);
         Storage.setValue("healthStatus", 0);
         Storage.setValue("hunger", GamigotchiStats.GAUGE_MAX);

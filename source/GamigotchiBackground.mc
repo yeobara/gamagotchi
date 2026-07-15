@@ -2,6 +2,7 @@ import Toybox.Activity;
 import Toybox.Application.Storage;
 import Toybox.Background;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.System;
 import Toybox.Time;
 
@@ -10,6 +11,7 @@ import Toybox.Time;
 class GamigotchiBackground extends System.ServiceDelegate {
 
     const ALERT_THRESHOLD = 30.0; // 게이지가 이 이하로 떨어지면 알림
+    const BONUS_TOKEN_CHANCE_PCT = 10; // 방향 B: 런 종료 시 토큰 2배가 될 확률
 
     function initialize() {
         ServiceDelegate.initialize();
@@ -87,13 +89,20 @@ class GamigotchiBackground extends System.ServiceDelegate {
         var tokensEarned = distanceKm.toNumber();
         if (tokensEarned < 1) { tokensEarned = 1; }
 
-        System.println("onActivityCompleted: dist=" + distanceM + "m tokens=" + tokensEarned);
+        // 방향 B: 긍정적 가변 보상 - 낮은 확률로 토큰 2배 (부정적 랜덤은 절대 없음)
+        var bonus = (Math.rand() % 100) < BONUS_TOKEN_CHANCE_PCT;
+        if (bonus) {
+            tokensEarned *= 2;
+        }
+
+        System.println("onActivityCompleted: dist=" + distanceM + "m tokens=" + tokensEarned + " bonus=" + bonus);
 
         // 거리 초기화
         Storage.setValue("lastRunDistance", 0.0f);
 
         Background.exit({
-            "tokens" => tokensEarned
+            "tokens" => tokensEarned,
+            "bonus" => bonus
         });
     }
 }
