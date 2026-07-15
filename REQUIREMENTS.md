@@ -322,6 +322,11 @@ v2 추가 예정:
 - **⚠️ 기술 검증 필요 (구현 착수 전 확인)**:
   1. **`Toybox.Weather`가 Forerunner 255에서 지원되는지**, 그리고 **`onActivityCompleted()` 백그라운드 컨텍스트에서 호출 가능한지** — 현재 `manifest.xml`엔 `Weather` 권한이 선언 안 돼 있음(`Background`만 있음). 안 되면 날씨 축은 접고 페이스/거리 축만으로 시작
   2. **페이스/케이던스 계산** — `Activity.Info`의 `averageCadence`, `elapsedTime`, `elapsedDistance`로 평균 페이스(분/km) 산출은 가능할 것으로 보임(API 존재 확인 완료, 실제 값 검증은 미확인). LSD 판정은 "페이스 임계값 + 거리 임계값" 둘 다 넘으면으로 단순하게 시작
+
+- **날씨 데이터 획득 방법 조사 (2026-07-15, 공식문서+포럼 확인)**:
+  - **`Toybox.Weather`(내장, 권장)** — Forerunner 255/255s 공식 지원 기기 목록에 있음. `getCurrentConditions()`는 **동기 즉시 반환**(콜백 불필요, 없으면 `null`) → 구현 단순. 워치에 이미 캐싱된 날씨를 읽는 방식으로 보여 **폰 연결과 무관**할 가능성 높음 = 러닝 중 연결 끊김 리스크 없음. **단 백그라운드 컨텍스트 호출 가능 여부는 공식 문서에 명시 없음** → 이 프로젝트가 겪은 `Notifications.showNotification()` 백그라운드 크래시와 유사 리스크. SDK에서 `onActivityCompleted()` 안에 한 줄 넣어 `System.println()`으로 결과 찍는 게 가장 빠른 검증
+  - **외부 API `Communications.makeWebRequest()`(최후 수단)** — 가능은 하나 **폰(Garmin Connect Mobile) 브리지를 거침**. 워치가 인터넷 직결 안 됨 → 폰이 블루투스로 근처에 붙어 있고 GCM 앱이 살아있어야 성공, 아니면 `-104`(BLE_CONNECTION_UNAVAILABLE). HTTPS 필수(`-1001`). `manifest.xml`에 `Communications` 권한 필요. **러닝 앱 특성상 폰 없이 뛰는 유저가 많아 신뢰도 낮음** → 날씨 하나 때문에 이 의존성을 끌어들이는 건 비추. 내장 Weather가 백그라운드에서 막힐 때만 검토하고, 그때도 "폰 없으면 날씨 태그 스킵" 방어 로직 필수
+  - **결론**: 내장 `Toybox.Weather` 우선. 어느 쪽이든 **날씨 태그 실패 시 페이스/거리 태그(Tier 1 완성분)는 그대로 작동**하도록 분리 설계됨 → 이 불확실성이 방향 E 전체를 막지 않음
 - **구현 지점(예상)**: `GamigotchiBackground.onActivityCompleted()`에서 런 종료 시점에 태그 계산 → `Background.exit()` 데이터에 태그 포함 → `GamigotchiApp.onBackgroundData()`에서 리액션 메시지 선택·표시 (기존 `bonus` 플래그 전달 방식과 동일 패턴)
 
 ### 아트 비용 3단계 (2026-07-15)

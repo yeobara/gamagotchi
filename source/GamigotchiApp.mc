@@ -22,7 +22,9 @@ class GamigotchiApp extends Application.AppBase {
     // 방향 B: 긍정적 가변 보상 (2026-07-15 구현) - 런 종료 보너스는 GamigotchiBackground.BONUS_TOKEN_CHANCE_PCT
     const SPECIAL_REACTION_CHANCE_PCT = 15; // Feed/Play 시 특별 리액션 확률
 
-    // 방향 E: 런 리액션 모션 표시 시간 (Tier 1, 2026-07-15) - 말풍선(5초)과 별개로 더 길게 유지
+    const MESSAGE_DURATION_SEC = 5; // 일반 말풍선(Feed/Play 등) 표시 시간
+    // 방향 E: 런 리액션 모션 표시 시간 (Tier 1, 2026-07-15).
+    // 리액션과 함께 뜨는 말풍선도 이 길이에 맞춰 표시(모션-메시지 연출 일관성)
     const REACTION_MOTION_DURATION_SEC = 8;
 
     private var _transientMessage as String = "";
@@ -43,7 +45,7 @@ class GamigotchiApp extends Application.AppBase {
             // 호출하면 안 됨(크래시) → requestUpdate 없이 상태만 세팅, 첫 onUpdate()가
             // 알아서 그려줌
             _transientMessage = "take care of your egg!";
-            _transientMessageUntil = Time.now().value() + 5;
+            _transientMessageUntil = Time.now().value() + MESSAGE_DURATION_SEC;
         }
         GamigotchiStats.tick(); // 앱이 닫혀있던 동안 밀린 게이지 감소분 반영
         Background.registerForActivityCompletedEvent();
@@ -78,19 +80,23 @@ class GamigotchiApp extends Application.AppBase {
             granted = _creditTokens(earned);
         }
 
-        // 방향 E: 런 리액션 태그가 있으면 우선 표시 (bonus 메시지보다 우선)
+        var bonus = d.get("bonus");
+        var isBonus = (granted > 0 && bonus instanceof Boolean && bonus);
+
+        // 방향 E: 리액션 모션은 말풍선과 별개 채널 - 태그가 있으면 항상 재생
         var reactionTag = d.get("reactionTag");
-        var reactionShown = false;
-        if (reactionTag instanceof Number && reactionTag != GamigotchiStats.REACTION_NONE) {
+        var hasReaction = (reactionTag instanceof Number && reactionTag != GamigotchiStats.REACTION_NONE);
+        if (hasReaction) {
             _reactionMotion = reactionTag;
             _reactionMotionUntil = Time.now().value() + REACTION_MOTION_DURATION_SEC;
-            _setTransientMessage(_reactionMessage(reactionTag));
-            reactionShown = true;
         }
 
-        var bonus = d.get("bonus");
-        if (!reactionShown && granted > 0 && bonus instanceof Boolean && bonus) {
-            _setTransientMessage("bonus tokens!! x2!");
+        // 말풍선은 한 번에 하나만 표시 가능 → bonus(2배 토큰, 더 신남)를 우선.
+        // 리액션 모션이 도는 동안 뜨는 메시지는 모션과 같은 길이로 유지.
+        if (isBonus) {
+            _setTransientMessageFor("bonus tokens!! x2!", hasReaction ? REACTION_MOTION_DURATION_SEC : MESSAGE_DURATION_SEC);
+        } else if (hasReaction) {
+            _setTransientMessageFor(_reactionMessage(reactionTag), REACTION_MOTION_DURATION_SEC);
         }
 
         WatchUi.requestUpdate();
@@ -198,10 +204,14 @@ class GamigotchiApp extends Application.AppBase {
         _setTransientMessage("feeling better!");
     }
 
-    // 액션 결과 등 잠깐 보여줄 말풍선 메시지 (5초 후 자동으로 사라짐)
+    // 액션 결과 등 잠깐 보여줄 말풍선 메시지 (기본 5초 후 자동으로 사라짐)
     private function _setTransientMessage(msg as String) as Void {
+        _setTransientMessageFor(msg, MESSAGE_DURATION_SEC);
+    }
+
+    private function _setTransientMessageFor(msg as String, durationSec as Number) as Void {
         _transientMessage = msg;
-        _transientMessageUntil = Time.now().value() + 5;
+        _transientMessageUntil = Time.now().value() + durationSec;
         WatchUi.requestUpdate();
     }
 
