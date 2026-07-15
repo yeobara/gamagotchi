@@ -155,8 +155,9 @@ class GamigotchiView extends WatchUi.View {
         }
 
         // Character
+        var expression = app.getExpression();
         var charStageX = cx + (canWander ? _walkX : 0) + reactionX;
-        var bitmapId = (canWander && _isWalking) ? _getWalkBitmapId(_walkFrameIdx) : _getCharBitmapId(stage, health, _frame);
+        var bitmapId = (canWander && _isWalking) ? _getWalkBitmapId(_walkFrameIdx) : _getCharBitmapId(stage, health, _frame, expression);
         var bitmap = WatchUi.loadResource(bitmapId) as WatchUi.BitmapResource;
         dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charY + reactionY - bitmap.getHeight() / 2, bitmap);
 
@@ -223,7 +224,8 @@ class GamigotchiView extends WatchUi.View {
             dc.drawLine(cx, cy, x2, y2);
         }
 
-        var bitmap = WatchUi.loadResource(_getCharBitmapId(_evolutionStage, 0, _frame)) as WatchUi.BitmapResource;
+        // 진화 연출은 기분 상태와 무관하게 항상 기본 표정으로 표시
+        var bitmap = WatchUi.loadResource(_getCharBitmapId(_evolutionStage, 0, _frame, GamigotchiStats.EXPR_NORMAL)) as WatchUi.BitmapResource;
         dc.drawBitmap(cx - bitmap.getWidth() / 2, cy - bitmap.getHeight() / 2, bitmap);
 
         var stageName = (_evolutionStage == 1) ? "Baby" : "Adult";
@@ -252,7 +254,7 @@ class GamigotchiView extends WatchUi.View {
         }
     }
 
-    private function _getCharBitmapId(stage as Number, health as Number, frame as Number) as ResourceId {
+    private function _getCharBitmapId(stage as Number, health as Number, frame as Number, expression as Number) as ResourceId {
         var sick = (health == 1);
         if (stage == 0) {
             if (sick) { return (frame == 1) ? Rez.Drawables.EggSick1 : Rez.Drawables.EggSick2; }
@@ -261,9 +263,26 @@ class GamigotchiView extends WatchUi.View {
         }
         if (stage == 1) {
             if (sick) { return (frame == 1) ? Rez.Drawables.BabySick1 : Rez.Drawables.BabySick2; }
-            return (frame == 1) ? Rez.Drawables.BabyNormal1 : Rez.Drawables.BabyNormal2;
+            return _getBabyExpressionBitmapId(expression, frame);
         }
         if (sick) { return (frame == 1) ? Rez.Drawables.AdultSick1 : Rez.Drawables.AdultSick2; }
+        return _getAdultExpressionBitmapId(expression, frame);
+    }
+
+    // 방향 D: 아기 단계 표정별 스프라이트. 전용 아트 아직 없어서 전부 Normal로 폴백 -
+    // 아트 추가되면 아래 주석 해제 + drawables.xml에 BabySulky1/2 등 등록하면 됨
+    private function _getBabyExpressionBitmapId(expression as Number, frame as Number) as ResourceId {
+        // if (expression == GamigotchiStats.EXPR_SULKY) { return (frame == 1) ? Rez.Drawables.BabySulky1 : Rez.Drawables.BabySulky2; }
+        // if (expression == GamigotchiStats.EXPR_DELIGHTED) { return (frame == 1) ? Rez.Drawables.BabyDelighted1 : Rez.Drawables.BabyDelighted2; }
+        // if (expression == GamigotchiStats.EXPR_HEART) { return (frame == 1) ? Rez.Drawables.BabyHeart1 : Rez.Drawables.BabyHeart2; }
+        return (frame == 1) ? Rez.Drawables.BabyNormal1 : Rez.Drawables.BabyNormal2;
+    }
+
+    // 방향 D: 어른 단계 표정별 스프라이트. 위와 동일한 폴백 패턴
+    private function _getAdultExpressionBitmapId(expression as Number, frame as Number) as ResourceId {
+        // if (expression == GamigotchiStats.EXPR_SULKY) { return (frame == 1) ? Rez.Drawables.AdultSulky1 : Rez.Drawables.AdultSulky2; }
+        // if (expression == GamigotchiStats.EXPR_DELIGHTED) { return (frame == 1) ? Rez.Drawables.AdultDelighted1 : Rez.Drawables.AdultDelighted2; }
+        // if (expression == GamigotchiStats.EXPR_HEART) { return (frame == 1) ? Rez.Drawables.AdultHeart1 : Rez.Drawables.AdultHeart2; }
         return (frame == 1) ? Rez.Drawables.AdultNormal1 : Rez.Drawables.AdultNormal2;
     }
 

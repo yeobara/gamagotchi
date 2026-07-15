@@ -31,6 +31,7 @@ class GamigotchiApp extends Application.AppBase {
     private var _transientMessageUntil as Number = 0;
     private var _reactionMotion as Number = GamigotchiStats.REACTION_NONE;
     private var _reactionMotionUntil as Number = 0;
+    private var _heartEyesUntil as Number = 0; // 방향 D: 급식 직후 하트눈 표정 트랜지언트
 
     function initialize() {
         AppBase.initialize();
@@ -118,6 +119,14 @@ class GamigotchiApp extends Application.AppBase {
         return _reactionMotion;
     }
 
+    // 방향 D: 현재 표정 상태 - 하트눈(급식 직후) 우선, 아니면 게이지로 계산
+    function getExpression() as Number {
+        if (Time.now().value() < _heartEyesUntil) {
+            return GamigotchiStats.EXPR_HEART;
+        }
+        return GamigotchiStats.computeExpression(getHunger(), getHappiness());
+    }
+
     // 하루 획득 한도(DAILY_TOKEN_CAP)와 지갑 보유 한도(WALLET_TOKEN_CAP)를 함께 적용해 토큰 지급.
     // 실제로 지갑에 들어간 양만 "오늘 획득량"으로 집계 - 지갑이 가득 차 막힌 만큼은
     // 하루 한도를 깎지 않아서, 나중에 토큰을 써서 지갑에 여유가 생기면 같은 날 안에도 다시 채울 수 있음
@@ -163,6 +172,7 @@ class GamigotchiApp extends Application.AppBase {
         }
         Storage.setValue("tokens", tokens - FEED_COST);
         GamigotchiStats.addGauge("hunger", FEED_AMOUNT);
+        _heartEyesUntil = Time.now().value() + MESSAGE_DURATION_SEC; // 방향 D: 말풍선과 같은 길이로 하트눈
         _setTransientMessage(_maybeSpecial("yum yum!", "SO yummy!! best meal ever!"));
     }
 

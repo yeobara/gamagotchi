@@ -29,6 +29,27 @@ module GamigotchiStats {
     const SLOW_PACE_MIN_PER_KM = 7.5; // 이 이상 느리면 "슬로우" 태그 (가안)
     const FAST_PACE_MIN_PER_KM = 5.5; // 이 이하로 빠르면 "패스트" 태그 (가안)
 
+    // 방향 D: 얼굴/표정 (2026-07-15) - 게이지 파생 표정. 알 단계는 얼굴 없어서 미적용,
+    // 아픈 상태는 별도 스프라이트 계열이라 미적용 (정상 상태에서만 표정 분기)
+    const EXPR_NORMAL = 0;
+    const EXPR_SULKY = 1;     // 둘 중 하나라도 낮음 - 시무룩
+    const EXPR_DELIGHTED = 2; // 둘 다 높음 - 활짝
+    const EXPR_HEART = 3;     // 방금 급식 (트랜지언트 - GamigotchiApp에서 타이머로 관리)
+
+    const EXPR_LOW_THRESHOLD = 30.0;  // ALERT_THRESHOLD와 동일 감각 - 이 이하면 시무룩
+    const EXPR_HIGH_THRESHOLD = 70.0; // 이 이상이면 활짝 (가안, 튜닝 필요)
+
+    // 배고픔/행복 게이지로 표정 계산 (하트눈은 여기 포함 안 됨 - 호출부에서 트랜지언트로 덧씌움)
+    public function computeExpression(hunger as Float, happiness as Float) as Number {
+        if (hunger <= EXPR_LOW_THRESHOLD || happiness <= EXPR_LOW_THRESHOLD) {
+            return EXPR_SULKY;
+        }
+        if (hunger >= EXPR_HIGH_THRESHOLD && happiness >= EXPR_HIGH_THRESHOLD) {
+            return EXPR_DELIGHTED;
+        }
+        return EXPR_NORMAL;
+    }
+
     // 런 하나의 거리(km)·소요시간(ms)으로 리액션 태그 계산.
     // 우선순위: 빠름(신남) > LSD(지침) > 장거리(단순 후들거림) > 없음
     public function computeRunReaction(distanceKm as Float, elapsedMs as Number) as Number {
