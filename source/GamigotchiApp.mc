@@ -22,8 +22,13 @@ class GamigotchiApp extends Application.AppBase {
     // 방향 B: 긍정적 가변 보상 (2026-07-15 구현) - 런 종료 보너스는 GamigotchiBackground.BONUS_TOKEN_CHANCE_PCT
     const SPECIAL_REACTION_CHANCE_PCT = 15; // Feed/Play 시 특별 리액션 확률
 
+    // 방향 E: 런 리액션 모션 표시 시간 (Tier 1, 2026-07-15) - 말풍선(5초)과 별개로 더 길게 유지
+    const REACTION_MOTION_DURATION_SEC = 8;
+
     private var _transientMessage as String = "";
     private var _transientMessageUntil as Number = 0;
+    private var _reactionMotion as Number = GamigotchiStats.REACTION_NONE;
+    private var _reactionMotionUntil as Number = 0;
 
     function initialize() {
         AppBase.initialize();
@@ -68,15 +73,43 @@ class GamigotchiApp extends Application.AppBase {
         var d = data as Dictionary;
 
         var earned = d.get("tokens");
+        var granted = 0;
         if (earned instanceof Number) {
-            var granted = _creditTokens(earned);
-            var bonus = d.get("bonus");
-            if (granted > 0 && bonus instanceof Boolean && bonus) {
-                _setTransientMessage("bonus tokens!! x2!");
-            }
+            granted = _creditTokens(earned);
+        }
+
+        // 방향 E: 런 리액션 태그가 있으면 우선 표시 (bonus 메시지보다 우선)
+        var reactionTag = d.get("reactionTag");
+        var reactionShown = false;
+        if (reactionTag instanceof Number && reactionTag != GamigotchiStats.REACTION_NONE) {
+            _reactionMotion = reactionTag;
+            _reactionMotionUntil = Time.now().value() + REACTION_MOTION_DURATION_SEC;
+            _setTransientMessage(_reactionMessage(reactionTag));
+            reactionShown = true;
+        }
+
+        var bonus = d.get("bonus");
+        if (!reactionShown && granted > 0 && bonus instanceof Boolean && bonus) {
+            _setTransientMessage("bonus tokens!! x2!");
         }
 
         WatchUi.requestUpdate();
+    }
+
+    // 방향 E: 태그별 말풍선 문구 (Tier 1)
+    private function _reactionMessage(tag as Number) as String {
+        if (tag == GamigotchiStats.REACTION_FAST) { return "whew, that was FAST!"; }
+        if (tag == GamigotchiStats.REACTION_TIRED) { return "so tired... but proud"; }
+        if (tag == GamigotchiStats.REACTION_LONG) { return "what a long run!"; }
+        return "";
+    }
+
+    // 방향 E: 뷰가 현재 활성 리액션 모션을 그릴지 판단할 때 사용 (만료되면 NONE으로 리셋)
+    function getReactionMotion() as Number {
+        if (_reactionMotion != GamigotchiStats.REACTION_NONE && Time.now().value() >= _reactionMotionUntil) {
+            _reactionMotion = GamigotchiStats.REACTION_NONE;
+        }
+        return _reactionMotion;
     }
 
     // 하루 획득 한도(DAILY_TOKEN_CAP)와 지갑 보유 한도(WALLET_TOKEN_CAP)를 함께 적용해 토큰 지급.

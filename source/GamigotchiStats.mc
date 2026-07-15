@@ -18,6 +18,34 @@ module GamigotchiStats {
     // 알 -> 아기: 3일, 아기 -> 어른: 추가 10일 (건강 유지 누적 시간 기준, 초 단위)
     const STAGE_THRESHOLDS_SEC = [3 * 86400, 10 * 86400];
 
+    // 방향 E: 런 데이터 리액션 - 페이스/거리 기반 태그 (Tier 1, 2026-07-15)
+    // 날씨 기반 태그(더움/추움/비)는 Toybox.Weather 검증 후 4~6번대로 추가 예정
+    const REACTION_NONE = 0;
+    const REACTION_FAST = 1;  // 빠른 페이스 - 통통 튐
+    const REACTION_TIRED = 2; // LSD(느림+장거리) - 축 처짐
+    const REACTION_LONG = 3;  // 장거리(페이스 무관) - 다리 후들거림
+
+    const LONG_DISTANCE_KM = 8.0;     // 이 이상이면 "장거리" 태그 (가안, 튜닝 필요)
+    const SLOW_PACE_MIN_PER_KM = 7.5; // 이 이상 느리면 "슬로우" 태그 (가안)
+    const FAST_PACE_MIN_PER_KM = 5.5; // 이 이하로 빠르면 "패스트" 태그 (가안)
+
+    // 런 하나의 거리(km)·소요시간(ms)으로 리액션 태그 계산.
+    // 우선순위: 빠름(신남) > LSD(지침) > 장거리(단순 후들거림) > 없음
+    public function computeRunReaction(distanceKm as Float, elapsedMs as Number) as Number {
+        if (distanceKm <= 0.0 || elapsedMs <= 0) {
+            return REACTION_NONE;
+        }
+        var paceMinPerKm = (elapsedMs / 60000.0) / distanceKm;
+        var isLong = distanceKm >= LONG_DISTANCE_KM;
+        var isSlow = paceMinPerKm >= SLOW_PACE_MIN_PER_KM;
+        var isFast = paceMinPerKm <= FAST_PACE_MIN_PER_KM;
+
+        if (isFast) { return REACTION_FAST; }
+        if (isLong && isSlow) { return REACTION_TIRED; }
+        if (isLong) { return REACTION_LONG; }
+        return REACTION_NONE;
+    }
+
     public function tick() as Void {
         var now = Time.now().value();
         var last = Storage.getValue("lastTickTime");

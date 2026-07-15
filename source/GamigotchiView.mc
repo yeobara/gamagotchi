@@ -142,11 +142,23 @@ class GamigotchiView extends WatchUi.View {
             _walkX = 0; // 배회 불가능한 단계면 중앙 고정
         }
 
+        // 방향 E: 런 리액션 모션 (Tier 1) - 새 아트 없이 기존 2프레임 토글로 오프셋만 적용
+        var reaction = app.getReactionMotion();
+        var reactionX = 0;
+        var reactionY = 0;
+        if (reaction == GamigotchiStats.REACTION_FAST) {
+            reactionY = (_frame == 1) ? -4 : 4; // 통통 튐
+        } else if (reaction == GamigotchiStats.REACTION_TIRED) {
+            reactionY = 6; // 축 처짐(스쿼시)
+        } else if (reaction == GamigotchiStats.REACTION_LONG) {
+            reactionX = (_frame == 1) ? -2 : 2; // 다리 후들거림
+        }
+
         // Character
-        var charStageX = cx + (canWander ? _walkX : 0);
+        var charStageX = cx + (canWander ? _walkX : 0) + reactionX;
         var bitmapId = (canWander && _isWalking) ? _getWalkBitmapId(_walkFrameIdx) : _getCharBitmapId(stage, health, _frame);
         var bitmap = WatchUi.loadResource(bitmapId) as WatchUi.BitmapResource;
-        dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charY - bitmap.getHeight() / 2, bitmap);
+        dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charY + reactionY - bitmap.getHeight() / 2, bitmap);
 
         // Speech bubble
         var bubble = _getBubble(app, health);

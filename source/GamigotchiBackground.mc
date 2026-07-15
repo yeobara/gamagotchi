@@ -29,6 +29,15 @@ class GamigotchiBackground extends System.ServiceDelegate {
             if (dist != null && dist > prevDist) {
                 Storage.setValue("lastRunDistance", dist);
             }
+
+            // 방향 E: 페이스 계산용 경과 시간도 같은 폴링에서 저장 (최대값 갱신).
+            // elapsedTime은 Activity.Info의 표준 필드로 보이나 실기기/시뮬레이터 검증 전 (TODO)
+            var elapsed = info.elapsedTime;
+            var prevElapsed = Storage.getValue("lastRunElapsedMs");
+            var prevElapsedVal = (prevElapsed instanceof Number) ? prevElapsed : 0;
+            if (elapsed != null && elapsed > prevElapsedVal) {
+                Storage.setValue("lastRunElapsedMs", elapsed);
+            }
         } else {
             System.println("onTemporalEvent: no active activity");
         }
@@ -80,10 +89,13 @@ class GamigotchiBackground extends System.ServiceDelegate {
             return;
         }
 
-        // 저장된 달리기 거리 사용
+        // 저장된 달리기 거리/시간 사용
         var stored = Storage.getValue("lastRunDistance");
         var distanceM = (stored instanceof Float) ? stored : 0.0f;
         var distanceKm = distanceM / 1000.0f;
+
+        var storedElapsed = Storage.getValue("lastRunElapsedMs");
+        var elapsedMs = (storedElapsed instanceof Number) ? storedElapsed : 0;
 
         // 토큰: 1km당 1토큰 (최소 1)
         var tokensEarned = distanceKm.toNumber();
@@ -95,14 +107,19 @@ class GamigotchiBackground extends System.ServiceDelegate {
             tokensEarned *= 2;
         }
 
-        System.println("onActivityCompleted: dist=" + distanceM + "m tokens=" + tokensEarned + " bonus=" + bonus);
+        // 방향 E: 런 데이터 리액션 태그 (Tier 1 - 페이스/거리 기반, 날씨 태그는 추후)
+        var reactionTag = GamigotchiStats.computeRunReaction(distanceKm, elapsedMs);
 
-        // 거리 초기화
+        System.println("onActivityCompleted: dist=" + distanceM + "m tokens=" + tokensEarned + " bonus=" + bonus + " reactionTag=" + reactionTag);
+
+        // 거리/시간 초기화
         Storage.setValue("lastRunDistance", 0.0f);
+        Storage.setValue("lastRunElapsedMs", 0);
 
         Background.exit({
             "tokens" => tokensEarned,
-            "bonus" => bonus
+            "bonus" => bonus,
+            "reactionTag" => reactionTag
         });
     }
 }
