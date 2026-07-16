@@ -43,6 +43,21 @@ class GamigotchiView extends WatchUi.View {
         if (roll < 0) { roll = -roll; }
         _eggEasterEgg = (roll < EGG_EASTER_EGG_CHANCE);
 
+        _checkPendingEvolution();
+
+        // 연출 도중 메뉴 등으로 화면을 벗어나면 onHide가 타이머만 멈추고
+        // _showingEvolution은 남아 연출 화면에 영구 고착됨 → 복귀 시 타이머 재가동 (감사 #10b)
+        if (_showingEvolution && _evolutionTimer == null) {
+            _evolutionTimer = new Timer.Timer();
+            _evolutionTimer.start(method(:_onEvolutionTimeout), 3500, false);
+        }
+    }
+
+    // pendingEvolution 플래그를 소비해 진화 축하 연출 시작.
+    // onShow뿐 아니라 애니 틱에서도 확인 - 화면을 보고 있는 중에 진화가 일어나면
+    // onShow만으론 다음 화면 진입 때까지 스프라이트만 조용히 바뀌고 연출이 지연됨 (감사 #10a)
+    private function _checkPendingEvolution() as Void {
+        if (_showingEvolution) { return; }
         var pending = Storage.getValue("pendingEvolution");
         if (pending instanceof Boolean && pending) {
             Storage.setValue("pendingEvolution", false);
@@ -72,6 +87,7 @@ class GamigotchiView extends WatchUi.View {
     function _onAnimTick() as Void {
         _frame = (_frame == 1) ? 2 : 1;
         _updateWander();
+        _checkPendingEvolution(); // 화면 표시 중에 진화해도 즉시 연출 (감사 #10a)
         WatchUi.requestUpdate();
     }
 

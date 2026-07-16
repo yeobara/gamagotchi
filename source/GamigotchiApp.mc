@@ -139,6 +139,10 @@ class GamigotchiApp extends Application.AppBase {
             dailyEarned = (de instanceof Number) ? de : 0;
         } else {
             Storage.setValue("dailyTokenDay", todayKey);
+            // 날짜가 바뀌면 어제 획득량을 반드시 0으로 초기화 (감사 #9).
+            // 이게 없으면 아래 grantable<=0 조기 반환(지갑 가득 등) 경로에서
+            // 어제 값이 Storage에 남아 오늘 한도를 잠식함
+            Storage.setValue("dailyTokenEarned", 0);
         }
 
         var dailyRemaining = DAILY_TOKEN_CAP - dailyEarned;
