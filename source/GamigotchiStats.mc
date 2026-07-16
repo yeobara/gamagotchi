@@ -16,10 +16,14 @@ module GamigotchiStats {
     const SICK_TO_DEAD_HOURS = 24.0; // 아픈 상태 24시간 지속 시 사망 (기존 72h 총합과 일치)
 
     // 알 -> 아기: 2시간(짧은 기대감 비트, 2026-07-15 문서 결정 반영 - 기존 3일은 문서-코드 불일치였음),
-    // 아기 -> 어른: 추가 10일 (건강 유지 누적 시간 기준, 초 단위). 현행 단일 감소율(약 2.08/시간)로도
-    // 게이지 100->50에 약 24시간이 걸리므로 2시간 부화엔 별도 케어 불필요. 튜닝값, 실기기 반응 보고 조정
-    // ⚠️ 문서의 단계별 감소 배율(알 ×0.4, 유아 배고픔 ×1.6, 청년 행복 ×1.6)은 아직 미구현 (설계 감사 #11)
+    // 아기 -> 어른: 추가 10일 (건강 유지 누적 시간 기준, 초 단위). 단계별 배율(아래 STAGE_*_DECAY_MULT)
+    // 적용 후에도 알 단계는 ×0.4라 100->50에 약 60시간 걸려 2시간 부화엔 케어 불필요. 튜닝값
     const STAGE_THRESHOLDS_SEC = [2 * 3600, 10 * 86400];
+
+    // 단계별 케어 차등 (2026-07-13 확정, 2026-07-16 구현 - 설계 감사 #11).
+    // 인덱스: 0=알, 1=유아기, 2=청년기. 기준 감소(DECAY_PER_HOUR)에 곱해서 적용
+    const STAGE_HUNGER_DECAY_MULT = [0.4, 1.6, 0.8];    // 유아기는 자주 먹여야
+    const STAGE_HAPPINESS_DECAY_MULT = [0.4, 0.7, 1.6]; // 청년기는 잘 놀아줘야
 
     // 방향 E: 런 데이터 리액션 - 페이스/거리 기반 태그 (Tier 1, 2026-07-15)
     // 날씨 기반 태그(더움/추움/비)는 Toybox.Weather 검증 후 4~6번대로 추가 예정
@@ -31,6 +35,7 @@ module GamigotchiStats {
     const LONG_DISTANCE_KM = 8.0;     // 이 이상이면 "장거리" 태그 (가안, 튜닝 필요)
     const SLOW_PACE_MIN_PER_KM = 7.5; // 이 이상 느리면 "슬로우" 태그 (가안)
     const FAST_PACE_MIN_PER_KM = 5.5; // 이 이하로 빠르면 "패스트" 태그 (가안)
+    const MIN_REACTION_DISTANCE_KM = 1.0; // 이 미만은 리액션 없음 (설계 감사 #12 - 진짜 러닝에만 반응)
 
     // 방향 D: 얼굴/표정 (2026-07-15) - 게이지 파생 표정. 알 단계는 얼굴 없어서 미적용,
     // 아픈 상태는 별도 스프라이트 계열이라 미적용 (정상 상태에서만 표정 분기)
@@ -56,7 +61,7 @@ module GamigotchiStats {
     // 런 하나의 거리(km)·소요시간(ms)으로 리액션 태그 계산.
     // 우선순위: 빠름(신남) > LSD(지침) > 장거리(단순 후들거림) > 없음
     public function computeRunReaction(distanceKm as Float, elapsedMs as Number) as Number {
-        if (distanceKm <= 0.0 || elapsedMs <= 0) {
+        if (distanceKm < MIN_REACTION_DISTANCE_KM || elapsedMs <= 0) {
             return REACTION_NONE;
         }
         var paceMinPerKm = (elapsedMs / 60000.0) / distanceKm;
@@ -93,18 +98,25 @@ module GamigotchiStats {
         var penalty = (poopCount > 0) ? POOP_PENALTY_MULT : 1.0;
         var elapsedHours = elapsedSec / 3600.0;
 
-        var hunger = _clamp(_getFloat("hunger") - DECAY_PER_HOUR * penalty * elapsedHours);
-        var happiness = _clamp(_getFloat("happiness") - DECAY_PER_HOUR * penalty * elapsedHours);
+        // 단계별 케어 차등 (설계 감사 #11) - growthStage가 배열 범위를 벗어날 일은 없으나 방어적으로 clamp
+        var growthStage = _getNumber("growthStage", 0);
+        var stageIdx = growthStage;
+        if (stageIdx >= STAGE_HUNGER_DECAY_MULT.size()) { stageIdx = STAGE_HUNGER_DECAY_MULT.size() - 1; }
+        var hungerMult = STAGE_HUNGER_DECAY_MULT[stageIdx];
+        var happinessMult = STAGE_HAPPINESS_DECAY_MULT[stageIdx];
+
+        var hunger = _clamp(_getFloat("hunger") - DECAY_PER_HOUR * penalty * hungerMult * elapsedHours);
+        var happiness = _clamp(_getFloat("happiness") - DECAY_PER_HOUR * penalty * happinessMult * elapsedHours);
         Storage.setValue("hunger", hunger);
         Storage.setValue("happiness", happiness);
 
         _accumulatePoop(elapsedSec);
 
-        // 아픔/사망은 배고픔 단독 트리거 (행복 0은 소프트 실패 - 성장만 멈추고 안 죽음)
+        // 아픔/사망은 배고픔 단독 트리거 (행복 0은 소프트 실패 - 성장만 멈추고 안 죽음).
+        // 회복은 Medicine 전용(GamigotchiApp.giveMedicine)으로만 - 설계 감사 #1: 예전엔
+        // 배고픔이 0 넘기만 해도(=Feed 한 번으로) 자동으로 나아서 Medicine이 무의미했음
         if (hunger <= 0.0) {
             _handleCriticalGauge(healthStatus, now);
-        } else if (healthStatus == 1) {
-            Storage.setValue("healthStatus", 0);
         }
 
         if (hunger >= HEALTHY_THRESHOLD && happiness >= HEALTHY_THRESHOLD) {

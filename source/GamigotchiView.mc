@@ -175,7 +175,11 @@ class GamigotchiView extends WatchUi.View {
         var charStageX = cx + (canWander ? _walkX : 0) + reactionX;
         var bitmapId = (canWander && _isWalking) ? _getWalkBitmapId(_walkFrameIdx) : _getCharBitmapId(stage, health, _frame, expression);
         var bitmap = WatchUi.loadResource(bitmapId) as WatchUi.BitmapResource;
-        dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charY + reactionY - bitmap.getHeight() / 2, bitmap);
+        var charDrawY = charY + reactionY;
+        dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charDrawY - bitmap.getHeight() / 2, bitmap);
+
+        // 설계 감사 #3: 응아가 화면에 안 보여 감소 페널티 원인을 알 수 없던 문제 - 발밑에 표시
+        _drawPoop(dc, charStageX, charDrawY + bitmap.getHeight() / 2 - 4, app.getPoopCount());
 
         // Speech bubble
         var bubble = _getBubble(app, health);
@@ -186,6 +190,18 @@ class GamigotchiView extends WatchUi.View {
 
         // Tokens (coin icon + count)
         _drawTokenCount(dc, cx, h - 45, app.getTokens());
+    }
+
+    // 설계 감사 #3: 응아 개수를 발밑 작은 원으로 표시 (최대 4개, 전용 아트 전까지 도형만 사용)
+    private function _drawPoop(dc as Graphics.Dc, cx as Number, feetY as Number, count as Number) as Void {
+        if (count <= 0) { return; }
+        var shown = (count > 4) ? 4 : count;
+        var spacing = 14;
+        var startX = cx - (spacing * (shown - 1)) / 2;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < shown; i += 1) {
+            dc.fillCircle(startX + i * spacing, feetY, 5);
+        }
     }
 
     // 동전 아이콘 옆에 토큰 개수 표시
@@ -270,18 +286,22 @@ class GamigotchiView extends WatchUi.View {
         }
     }
 
+    // 설계 감사 #6: *Sick*.png이 전부 단색 placeholder 확인됨(2026-07-15) - 실제 아픈 아트가
+    // 나오기 전까진 normal로 폴백. "귀여움 최우선" 원칙상 아무 표시 없는 것보다 흉한 단색
+    // 사각형이 뜨는 게 더 나쁘다고 판단, "so hungry..." 말풍선이 상태를 대신 알려줌.
+    // 아트 완성되면 아래 주석 해제
     private function _getCharBitmapId(stage as Number, health as Number, frame as Number, expression as Number) as ResourceId {
-        var sick = (health == 1);
+        // var sick = (health == 1);
         if (stage == 0) {
-            if (sick) { return (frame == 1) ? Rez.Drawables.EggSick1 : Rez.Drawables.EggSick2; }
+            // if (sick) { return (frame == 1) ? Rez.Drawables.EggSick1 : Rez.Drawables.EggSick2; }
             if (_eggEasterEgg) { return Rez.Drawables.EggEaster; }
             return (frame == 1) ? Rez.Drawables.EggNormal1 : Rez.Drawables.EggNormal2;
         }
         if (stage == 1) {
-            if (sick) { return (frame == 1) ? Rez.Drawables.BabySick1 : Rez.Drawables.BabySick2; }
+            // if (sick) { return (frame == 1) ? Rez.Drawables.BabySick1 : Rez.Drawables.BabySick2; }
             return _getBabyExpressionBitmapId(expression, frame);
         }
-        if (sick) { return (frame == 1) ? Rez.Drawables.AdultSick1 : Rez.Drawables.AdultSick2; }
+        // if (sick) { return (frame == 1) ? Rez.Drawables.AdultSick1 : Rez.Drawables.AdultSick2; }
         return _getAdultExpressionBitmapId(expression, frame);
     }
 

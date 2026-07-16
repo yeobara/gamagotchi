@@ -64,9 +64,10 @@ class GamigotchiBackground extends System.ServiceDelegate {
     // 이미 이 컨텍스트에서 정상 동작 중인 Background 모듈의 requestApplicationWake()로 대체.
     // requestApplicationWake() 호출 뒤 반드시 Background.exit()가 이어져야 확인 다이얼로그가 뜸.
     private function _checkGaugeAlert() as Void {
+        // 설계 감사 #7: 행복은 소프트 실패(안 죽음)라 여기 포함하면 "긴급 알림"을 자주 보내
+        // 유저가 알림 자체를 무시하게 만듦(늑대소년 효과) - 배고픔(하드 실패)만 트리거
         var hunger = GamigotchiStats.getGauge("hunger");
-        var happiness = GamigotchiStats.getGauge("happiness");
-        var isLow = (hunger <= ALERT_THRESHOLD) || (happiness <= ALERT_THRESHOLD);
+        var isLow = (hunger <= ALERT_THRESHOLD);
 
         var notified = Storage.getValue("hungerNotified");
         var alreadyNotified = (notified instanceof Boolean) ? notified : false;

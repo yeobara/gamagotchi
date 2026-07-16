@@ -23,9 +23,9 @@ class GamigotchiApp extends Application.AppBase {
     const SPECIAL_REACTION_CHANCE_PCT = 15; // Feed/Play 시 특별 리액션 확률
 
     const MESSAGE_DURATION_SEC = 5; // 일반 말풍선(Feed/Play 등) 표시 시간
-    // 방향 E: 런 리액션 모션 표시 시간 (Tier 1, 2026-07-15).
-    // 리액션과 함께 뜨는 말풍선도 이 길이에 맞춰 표시(모션-메시지 연출 일관성)
-    const REACTION_MOTION_DURATION_SEC = 8;
+    // 방향 E: 런 리액션 모션 표시 시간. 리액션과 함께 뜨는 말풍선도 이 길이에 맞춰 표시
+    // (모션-메시지 연출 일관성). 8초→30초 (설계 감사 #5 - 앱을 늦게 열면 놓치기 쉬웠음)
+    const REACTION_MOTION_DURATION_SEC = 30;
 
     private var _transientMessage as String = "";
     private var _transientMessageUntil as Number = 0;
@@ -76,6 +76,7 @@ class GamigotchiApp extends Application.AppBase {
         var d = data as Dictionary;
 
         var earned = d.get("tokens");
+        var earnedVal = (earned instanceof Number) ? earned : 0;
         var granted = 0;
         if (earned instanceof Number) {
             granted = _creditTokens(earned);
@@ -98,6 +99,9 @@ class GamigotchiApp extends Application.AppBase {
             _setTransientMessageFor("bonus tokens!! x2!", hasReaction ? REACTION_MOTION_DURATION_SEC : MESSAGE_DURATION_SEC);
         } else if (hasReaction) {
             _setTransientMessageFor(_reactionMessage(reactionTag), REACTION_MOTION_DURATION_SEC);
+        } else if (earnedVal > 0 && granted == 0) {
+            // 설계 감사 #16: 한도(일일/지갑)에 막혀 0 지급이면 이유를 알려줌 - 안 그러면 버그로 오인
+            _setTransientMessage("daily goal reached!");
         }
 
         WatchUi.requestUpdate();
@@ -181,6 +185,12 @@ class GamigotchiApp extends Application.AppBase {
     }
 
     function play() as Void {
+        // 설계 감사 #2: 배고픔이 PLAY_HUNGER_COST 이하면 놀아주는 게 배고픔을 0으로 만들어
+        // 아픈 상태를 유발할 수 있었음 - "놀아줬더니 아파짐"은 감정 연결 원칙에 위배돼 거부로 변경
+        if (getHunger() <= PLAY_HUNGER_COST) {
+            _setTransientMessage("too hungry to play...");
+            return;
+        }
         GamigotchiStats.addGauge("happiness", PLAY_AMOUNT);
         GamigotchiStats.addGauge("hunger", -PLAY_HUNGER_COST);
         _setTransientMessage(_maybeSpecial("wheee!", "wheee!! best day ever!!"));
