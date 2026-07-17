@@ -5,6 +5,12 @@ import Toybox.Time;
 // 배고픔/행복 게이지, 응아, 성장 타이머 계산 로직.
 // foreground(GamigotchiApp)와 background(GamigotchiBackground) 양쪽에서 호출됨 -
 // WatchUi 등 foreground 전용 API는 쓰지 않음.
+//
+// (:background) 필수: 백그라운드 서비스(GamigotchiBackground)가 tick()/getGauge()/
+// computeRunReaction()을 호출하는데, 이 어노테이션이 없으면 백그라운드 이미지에
+// 포함되지 않아 실기기에서 "Failed invoking symbol"로 서비스가 죽음(시뮬레이터는
+// 분리를 강제 안 해서 정상 동작 → 실기기에서만 재현됨). 2026-07-17 확인.
+(:background)
 module GamigotchiStats {
     const GAUGE_MAX = 100.0;
     const HEALTHY_THRESHOLD = 50.0; // 이 이상이어야 "건강 유지"로 쳐서 성장 타이머가 감

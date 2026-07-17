@@ -18,6 +18,9 @@ class GamigotchiBackground extends System.ServiceDelegate {
     }
 
     function onTemporalEvent() as Void {
+        // ⚠️ TEST ONLY (2026-07-16): 토큰-러닝 연동 디버깅용, 확인 후 제거
+        Storage.setValue("debugLastTemporalEventTime", Time.now().value());
+
         var info = Activity.getActivityInfo();
         if (info != null) {
             var dist = info.elapsedDistance;
@@ -81,6 +84,11 @@ class GamigotchiBackground extends System.ServiceDelegate {
     }
 
     function onActivityCompleted(activity) as Void {
+        // ⚠️ TEST ONLY (2026-07-16): 토큰-러닝 연동 디버깅용, 확인 후 제거
+        Storage.setValue("debugActivityCompletedCalled", true);
+        var sportRaw = (activity instanceof Dictionary) ? (activity as Dictionary).get(:sport) : null;
+        Storage.setValue("debugSportRaw", (sportRaw != null) ? sportRaw.toString() : "null-or-not-dict");
+
         var isRun = (activity instanceof Dictionary) &&
                     ((activity as Dictionary).get(:sport) instanceof Number) &&
                     ((activity as Dictionary).get(:sport) == 1);

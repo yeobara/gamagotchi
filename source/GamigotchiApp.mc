@@ -48,14 +48,30 @@ class GamigotchiApp extends Application.AppBase {
             _transientMessage = "take care of your egg!";
             _transientMessageUntil = Time.now().value() + MESSAGE_DURATION_SEC;
         }
-        GamigotchiStats.tick(); // 앱이 닫혀있던 동안 밀린 게이지 감소분 반영
-        Background.registerForActivityCompletedEvent();
+        // 백그라운드 등록을 tick()보다 먼저 실행 (⚠️ TEST ONLY 2026-07-17: 실기기에서
+        // tick()이 가끔 "Illegal Access (Out of Bounds)"로 죽는 게 확인됐는데, 그러면
+        // 이 아래에 있던 등록 호출들이 그 시도에서 아예 안 불렸을 것 → 순서를 바꿔서
+        // tick()이 죽어도 등록은 항상 되게 함. 원인 확인되면 순서 되돌리고 try/catch 제거)
+        try {
+            Background.registerForActivityCompletedEvent();
+            Storage.setValue("debugRegisterACCrashMsg", "ok");
+        } catch (e) {
+            System.println("registerForActivityCompletedEvent crashed: " + e.getErrorMessage());
+            Storage.setValue("debugRegisterACCrashMsg", e.getErrorMessage());
+        }
 
         // 5분 후 temporal event (이후 GamigotchiBackground.onTemporalEvent()가 5분 간격으로 재등록)
         try {
             Background.registerForTemporalEvent(Time.now().add(new Time.Duration(5 * 60)));
         } catch (e instanceof Background.InvalidBackgroundTimeException) {
             System.println("temporal event: too soon, skipping");
+        }
+
+        try {
+            GamigotchiStats.tick(); // 앱이 닫혀있던 동안 밀린 게이지 감소분 반영
+        } catch (e) {
+            System.println("tick() crashed: " + e.getErrorMessage());
+            Storage.setValue("debugTickCrashMsg", e.getErrorMessage());
         }
     }
 
@@ -294,7 +310,10 @@ class GamigotchiApp extends Application.AppBase {
     }
 
     hidden function _resetCharacter() as Void {
-        Storage.setValue("tokens", 30); // ⚠️ TEST ONLY (2026-07-15): 실기기 테스트용, 릴리즈 전 0으로 원복 필수
+        // ⚠️ TEST ONLY (2026-07-15): 실기기 테스트용, 릴리즈 전 0으로 원복 필수.
+        // 2026-07-16: 30 -> 15로 조정 - WALLET_TOKEN_CAP(30)과 정확히 같으면 지갑이
+        // 처음부터 꽉 찬 상태라 러닝으로 벌어도 _creditTokens()가 항상 0을 지급하는 버그였음
+        Storage.setValue("tokens", 15);
         Storage.setValue("growthStage", 0);
         Storage.setValue("healthStatus", 0);
         Storage.setValue("hunger", GamigotchiStats.GAUGE_MAX);

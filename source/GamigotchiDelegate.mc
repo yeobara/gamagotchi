@@ -26,15 +26,17 @@ class GamigotchiDelegate extends WatchUi.BehaviorDelegate {
     }
 
     // 왼쪽 상단(LIGHT)은 백라이트용으로 시스템이 예약해 앱까지 이벤트가 전달되지 않음
-    // (시뮬레이터에서 확인됨) → 대신 Up 버튼(왼쪽 중단)에 배치.
-    // Up이 onNextPage/onPreviousPage 중 어디로 오는지 기기마다 다를 수 있어 둘 다 처리
-    function onNextPage() as Boolean {
+    // (시뮬레이터에서 확인됨) → 대신 Up/Down 버튼에 배치.
+    // fr255에서 Up/Down 물리 버튼은 onKey()가 아니라 onPreviousPage()/onNextPage()로
+    // 들어옴(제스처 처리가 onKey보다 우선) → Up=onPreviousPage, Down=onNextPage로 배정.
+    // (⚠️ TEST ONLY 2026-07-17: Down=디버그 로그 화면, 확인 후 제거)
+    function onPreviousPage() as Boolean {
         _openStatusView();
         return true;
     }
 
-    function onPreviousPage() as Boolean {
-        _openStatusView();
+    function onNextPage() as Boolean {
+        WatchUi.pushView(new GamigotchiDebugLogView(), new GamigotchiDebugLogDelegate(), WatchUi.SLIDE_UP);
         return true;
     }
 
