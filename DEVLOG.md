@@ -1,5 +1,26 @@
 # 개발 노트
 
+## 러닝→토큰 미적립 근본 원인 해결: `GamigotchiStats` `(:background)` 누락 (2026-07-17~18)
+
+- **증상**: 실기기(Forerunner 255)에서 러닝을 완주해도 토큰이 적립되지 않음. 며칠간 미해결. **시뮬레이터에선 완벽하게 정상 동작** → 코드 로직 문제가 아님을 시사.
+
+- **근본 원인 — `GamigotchiStats` 모듈에 `(:background)` 어노테이션 누락**. 백그라운드 서비스 `GamigotchiBackground`(이건 `(:background)` 있음)가 `GamigotchiStats`의 `tick()`/`getGauge()/`computeRunReaction()`을 호출하는데, 모듈이 백그라운드 이미지에 포함되지 않아 실기기 백그라운드 프로세스가 로드 단계에서 심볼을 못 찾고 죽음(`Failed invoking <symbol>` / `Illegal Access (Out of Bounds)`). 그 결과 `onActivityCompleted`·`onTemporalEvent` 핸들러가 **아예 발화조차 못 함** → 완주 신호가 앱에 전달되지 않아 토큰 미적립. 실기기는 foreground/background 메모리·심볼 공간을 엄격히 분리하지만 **시뮬레이터는 분리를 강제하지 않아** 정상 동작 → 실기기에서만 재현되는 버그였음.
+
+- **진단 방법 (재사용 가치 있음)** — 세 신호를 조합:
+  1. **실기기 CIQ_LOG 크래시 로그** → 에러 *종류* 파악 ("심볼을 못 부름")
+  2. **앱 내 디버그 화면에서 `AC:N`과 `TE:never`가 동시에** → 고장 *범위* 파악. 두 핸들러 모두 첫 줄에서 디버그 플래그를 세팅하는데 그게 안 됐다 = 핸들러 진입 자체를 못 함 = 백그라운드 서비스 **전체**가 죽음(핸들러 하나의 문제가 아님)
+  3. **`grep -rn "(:background)" source/`** → 정확한 *위치* 확정 (백그라운드가 참조하는데 태그가 없는 건 `GamigotchiStats`뿐)
+
+- **수정**: `source/GamigotchiStats.mc`의 `module GamigotchiStats {` 위에 `(:background)` 추가. **실기기 확인 완료** — 활동 저장 후 디버그 화면이 `AC:Y Sport:1`, TE 발화(`278s ago`), `Ea:1`로 바뀌고 토큰 카운터 +1. 날짜가 바뀐 뒤에도 `dailyTokenEarned`가 다음 적립 시점에 정상 리셋됨(lazy reset — 자정 자동 리셋이 아니라 다음 `_creditTokens()` 호출 때 날짜 키 비교로 0으로 초기화). 커밋 `00ded8e` (master).
+
+- **⚠️ 2026-07-14 "오탐" 판단 정정** — 그 엔트리에서 `monkeydo`의 `onStart():tick()` `Failed invoking symbol` 로그를 "시뮬레이터 오탐"으로 결론냈으나, **실기기에선 실제 크래시**였음(같은 시그니처가 실기기 CIQ_LOG에 반복 기록됨). 단, 토큰 미적립의 직접 원인은 위 백그라운드 문제이고, 포그라운드 `onStart`의 `tick()` 간헐 크래시는 **별개의 미해결 이슈**로 남음(근본 원인 미확인). 방어책으로 `onStart`에서 백그라운드 등록(`registerForActivityCompletedEvent`/`registerForTemporalEvent`)을 `tick()`보다 **먼저** 실행하도록 순서를 바꿔, tick이 죽어도 등록은 항상 되게 함(try/catch도 감쌌으나 이 치명 오류는 catch로 안 잡힘 — VM 레벨 오류).
+
+- **진단용 스캐폴딩(⚠️ TEST ONLY 2026-07-17, 배포 전 제거)** — 시계에서 파이프라인 상태를 눈으로 보려고 Down 버튼에 디버그 로그 화면(`GamigotchiDebugLogView.mc`) 추가: `AC`(완주 신호 발화 여부)·`Sport`(활동 종류)·`TE`(백그라운드 마지막 발화)·`Ea`(오늘 적립 토큰) + `Reg`/`Tick` 크래시 메시지. FR255에서 Up=`onPreviousPage`(Status), Down=`onNextPage`(디버그)로 물리 버튼이 갈리는 것도 확인. **안정화 최종 확인(실제 야외 러닝)까지 유지**, 이후 `debug*` Storage 키·화면·순서변경 주석과 함께 제거. `_resetCharacter()`의 `tokens=15` 시작값 핵도 배포 전 제거 대상.
+
+- **기기 워크플로우 참고** — 워치는 MTP로 잡혀 WSL에 드라이브 문자가 안 뜸 → PowerShell `Shell.Application` COM으로 `GARMIN/Apps/{LOGS,DATA}` 순회해 CIQ_LOG·DATA 추출. 빌드 설치는 `bin/gamigotchi_test.prg`를 `GARMIN/Apps`에 `gamigotchi.prg`로 복사 후 **케이블을 뽑아야** 반영됨. 화면이 바뀌면 MTP 연결이 자주 끊김. Storage(`.DAT`)는 암호화라 값은 못 읽음 → 디버그 화면이 유일한 실기기 가시성.
+
+---
+
 ## 행복/배고픔 역할 분리 코드 반영 + 시뮬레이터 검증 (2026-07-14)
 
 - **코드-문서 불일치 수정** — `GamigotchiStats.tick()`의 사망 트리거를 배고픔 단독으로 변경(행복 0은 소프트 실패), 성장 누적 조건을 "둘 다 0 초과"에서 "둘 다 `HEALTHY_THRESHOLD`(50) 이상"으로 수정. `GamigotchiApp.play()`는 토큰 소모를 없애고 배고픔을 소모하도록 변경. 배포 전 정리 대상이던 30초 테스트 temporal event도 5분으로 수정
