@@ -258,7 +258,7 @@ class GamigotchiView extends WatchUi.View {
         }
         if (stage == 1) {
             // if (sick) { return (frame == 1) ? Rez.Drawables.BabySick1 : Rez.Drawables.BabySick2; }
-            return _getBabyExpressionBitmapId(expression, frame, getApp().getCareTierBaby());
+            return _getBabyExpressionBitmapId(expression, frame);
         }
         // if (sick) { return (frame == 1) ? Rez.Drawables.AdultSick1 : Rez.Drawables.AdultSick2; }
         return _getAdultExpressionBitmapId(expression, frame, getApp().getCareTierAdult());
@@ -267,15 +267,13 @@ class GamigotchiView extends WatchUi.View {
     // 방향 D: 아기 단계 표정별 스프라이트. 전용 아트 아직 없어서 전부 Normal로 폴백 -
     // 아트 추가되면 아래 주석 해제 + drawables.xml에 BabySulky1/2 등 등록하면 됨
     //
-    // 케어 등급(Care Tier): 아픈 상태(sick)가 등급보다 우선이라 이 함수엔 안 들어옴(_getCharBitmapId에서
-    // sick 분기가 먼저). 아트(BabyNeglected1/2, BabyWellCared1/2) 확정되면 drawables.xml 등록 후
-    // 아래 주석 해제
-    private function _getBabyExpressionBitmapId(expression as Number, frame as Number, careTier as Number) as ResourceId {
+    // 케어 등급 없음(2026-08-29 결정): 알->아기 전환이 2시간짜리라 케어할 기회가 거의 없어서
+    // 등급을 안 나누고 항상 Normal 고정으로 감. 이미 만들어둔 BabyNeglected/BabyWellCared
+    // 아트는 v2에서 성장 단계가 늘어나면 재검토
+    private function _getBabyExpressionBitmapId(expression as Number, frame as Number) as ResourceId {
         // if (expression == GamigotchiStats.EXPR_SULKY) { return (frame == 1) ? Rez.Drawables.BabySulky1 : Rez.Drawables.BabySulky2; }
         // if (expression == GamigotchiStats.EXPR_DELIGHTED) { return (frame == 1) ? Rez.Drawables.BabyDelighted1 : Rez.Drawables.BabyDelighted2; }
         // if (expression == GamigotchiStats.EXPR_HEART) { return (frame == 1) ? Rez.Drawables.BabyHeart1 : Rez.Drawables.BabyHeart2; }
-        // if (careTier == GamigotchiStats.CARE_TIER_NEGLECTED) { return (frame == 1) ? Rez.Drawables.BabyNeglected1 : Rez.Drawables.BabyNeglected2; }
-        // if (careTier == GamigotchiStats.CARE_TIER_WELL) { return (frame == 1) ? Rez.Drawables.BabyWellCared1 : Rez.Drawables.BabyWellCared2; }
         return (frame == 1) ? Rez.Drawables.BabyNormal1 : Rez.Drawables.BabyNormal2;
     }
 

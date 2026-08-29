@@ -267,11 +267,8 @@ class GamigotchiApp extends Application.AppBase {
         return (g instanceof Number) ? g : 0;
     }
 
-    // 케어 등급(Care Tier) - 아기/어른 외형 분기용. GamigotchiStats가 진화 체크포인트에서 확정
-    function getCareTierBaby() as Number {
-        return GamigotchiStats.getCareTierBaby();
-    }
-
+    // 케어 등급(Care Tier) - 어른 외형 분기용 (아기는 항상 Normal 고정). GamigotchiStats가
+    // 아기->어른 전환 체크포인트에서 확정
     function getCareTierAdult() as Number {
         return GamigotchiStats.getCareTierAdult();
     }
@@ -329,7 +326,6 @@ class GamigotchiApp extends Application.AppBase {
         Storage.setValue("careScoreElapsedSec", 0);
         Storage.setValue("careSickEpisodes", 0);
         Storage.setValue("overeatCount", 0);
-        Storage.setValue("careTierBaby", GamigotchiStats.CARE_TIER_NORMAL);
         Storage.setValue("careTierAdult", GamigotchiStats.CARE_TIER_NORMAL);
     }
 }

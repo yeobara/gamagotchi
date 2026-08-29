@@ -182,11 +182,13 @@ module GamigotchiStats {
         var healthyElapsed = _getNumber("healthyElapsedSeconds", 0) + elapsedSec;
         var threshold = STAGE_THRESHOLDS_SEC[growthStage];
         if (healthyElapsed >= threshold) {
-            var tier = _finalizeCareTier();
-            if (growthStage == 0) {
-                Storage.setValue("careTierBaby", tier); // 알 단계 케어 -> 아기 외형
-            } else if (growthStage == 1) {
-                Storage.setValue("careTierAdult", tier); // 아기 단계 케어 -> 어른 외형
+            // 케어 등급은 아기->어른 전환에서만 확정 (2026-08-29). 알->아기는 2시간짜리
+            // 짧은 기대감 비트라 케어할 기회 자체가 거의 없어 등급을 가르는 게 의미 없음 -
+            // 누적은 계속하되(리셋 안 함) 아기 단계 10일을 다 채운 뒤에야 평가.
+            // 아기 외형은 항상 기본(Normal) 고정
+            if (growthStage == 1) {
+                var tier = _finalizeCareTier();
+                Storage.setValue("careTierAdult", tier); // 알+아기 단계 케어 누적 -> 어른 외형
             }
 
             growthStage += 1;
@@ -241,11 +243,7 @@ module GamigotchiStats {
         Storage.setValue("careScoreElapsedSec", _getNumber("careScoreElapsedSec", 0) + elapsedSec);
     }
 
-    // 뷰/앱에서 등급 조회용
-    public function getCareTierBaby() as Number {
-        return _getNumber("careTierBaby", CARE_TIER_NORMAL);
-    }
-
+    // 뷰/앱에서 등급 조회용. 아기는 등급 없음(항상 Normal 고정) - 위 _accumulateGrowth 참고
     public function getCareTierAdult() as Number {
         return _getNumber("careTierAdult", CARE_TIER_NORMAL);
     }
