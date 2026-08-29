@@ -154,7 +154,9 @@ class GamigotchiView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        // 순정 검정 대신 진회색 배경 (2026-08-29) - 캐릭터의 검은 외곽선/부분이
+        // 배경과 묻히는 문제를 배경 쪽에서 해결. 캐릭터 아트는 원래 검은 외곽선 유지
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_DK_GRAY);
         dc.clear();
 
         var cx = dc.getWidth() / 2;
@@ -236,7 +238,9 @@ class GamigotchiView extends WatchUi.View {
 
     // 진화 축하 연출: 방사형 광선(그래픽 도형만 사용, 별도 이미지 불필요) + 새 단계 스프라이트
     private function _drawEvolutionScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        // 메인 화면과 같은 진회색으로 통일 (2026-08-29) - 캐릭터 스프라이트가 이 색을
+        // 배경으로 미리 구워둔 상태라, 다른 색으로 클리어하면 캐릭터 사각 경계가 비쳐 보임
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_DK_GRAY);
         dc.clear();
 
         var cy = h / 2 - 10;

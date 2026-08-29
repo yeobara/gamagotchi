@@ -33,7 +33,7 @@ def snap_rgb(r, g, b):
     return (snap_to_level(r), snap_to_level(g), snap_to_level(b))
 
 
-def convert(input_path, output_path, size):
+def convert(input_path, output_path, size, bg):
     img = Image.open(input_path).convert("RGBA")
 
     # 정사각형 중앙 크롭
@@ -46,19 +46,19 @@ def convert(input_path, output_path, size):
     # 다운스케일 (NEAREST -> 경계가 안 섞여서 픽셀아트 원본 색이 그대로 유지됨)
     img = img.resize((size, size), Image.NEAREST)
 
-    out = Image.new("RGB", (size, size), (0, 0, 0))
+    out = Image.new("RGB", (size, size), bg)
     px_in = img.load()
     px_out = out.load()
     for y in range(size):
         for x in range(size):
             r, g, b, a = px_in[x, y]
             if a < 128:
-                px_out[x, y] = (0, 0, 0)  # 투명 -> 검정 배경과 자연스럽게 합쳐짐
+                px_out[x, y] = bg  # 투명 -> 화면 배경색과 자연스럽게 합쳐짐
             else:
                 px_out[x, y] = snap_rgb(r, g, b)
 
     out.save(output_path)
-    print(f"saved {output_path} ({size}x{size}, 64-color snapped)")
+    print(f"saved {output_path} ({size}x{size}, 64-color snapped, bg={bg})")
 
 
 if __name__ == "__main__":
@@ -66,5 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("input")
     parser.add_argument("output")
     parser.add_argument("--size", type=int, default=64)
+    parser.add_argument("--bg", default="0,0,0", help="배경(투명 영역) 채움색 R,G,B - 화면 clear 색과 맞출 것 (기본 검정)")
     args = parser.parse_args()
-    convert(args.input, args.output, args.size)
+    bg_tuple = tuple(int(v) for v in args.bg.split(","))
+    convert(args.input, args.output, args.size, bg_tuple)
