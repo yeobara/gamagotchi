@@ -187,17 +187,18 @@
 |-----------|------|-----------|-----------|
 | 펭귄 알 | ✅ 완료 (2026-07-13, `create_map_object`로 제작) | ⬜ placeholder | v1 |
 | 아기 펭귄(유년기) | ✅ 완료 (2026-07-15, PixelLab "bighead" 큰 머리 비율 시안 B 채택) | ⬜ placeholder | v1 |
-| 어른 펭귄(청년기) | ✅ 완료 (2026-07-12, 귀여움 브리프) | ⬜ placeholder | v1 |
+| 어른 펭귄(청년기) | ✅ 완료 → **2026-08-29 아기 캐릭터 기반으로 전면 재작업**(PixelLab 캐릭터 계보 일치, 몸통 비율 성체답게 조정) | ⬜ placeholder | v1 |
 | 노년기 | ⬜ placeholder | ⬜ placeholder | v2 (아직 미연결) |
 
-**케어 등급 추가 스프라이트** (2026-08-23, 위 "케어 등급" 섹션 참고) — Normal 등급은 위 기본 스프라이트 재사용, 아픈 상태는 등급 무관 재사용:
+**케어 등급 추가 스프라이트** (위 "케어 등급" 섹션 참고) — 어른만 적용(아기는 등급 없음, 위 결정 참고):
 
 | 스프라이트 | 상태 |
 |-----------|------|
-| 아기 펭귄 - Neglected (2프레임) | ⬜ 미생성 |
-| 아기 펭귄 - Well-cared (2프레임) | ⬜ 미생성 |
-| 어른 펭귄 - Neglected (2프레임) | ⬜ 미생성 |
-| 어른 펭귄 - Well-cared (2프레임) | ⬜ 미생성 |
+| 어른 펭귄 - Neglected | ✅ 완료 (2026-08-29, `adult_neglected_1/2.png` — 프레임 1장을 2슬롯에 재사용, 애니메이션 없음) |
+| 어른 펭귄 - Well-cared | ✅ 완료 (2026-08-29, `adult_well_cared_1/2.png` — 위와 동일 방식) |
+| 아기 펭귄 - Neglected/Well-cared | ⏸ 생성은 했으나 미사용 (아기 등급 폐지 결정, v2 재검토) |
+
+⚠️ **애니메이션 프레임 부채**: 위 어른 등급 스프라이트는 PixelLab에서 정지 이미지 1장만 뽑아 프레임1/2에 동일하게 씀 — 알/아기/기존 어른 Normal처럼 숨쉬기 2프레임 루프가 아님. 나중에 `animate_character`(breathing-idle)로 보강 가능
 
 - **알(egg) 제작 시 발견**: `create_character`는 "penguin"이라는 단어에 편향돼서 description에 "egg"를 넣어도 계속 팔다리 있는 펭귄을 그려줌. `create_map_object`(오브젝트 전용)로 바꾸니 정상적으로 알 형태가 나옴 — 캐릭터가 아닌 소품은 이 도구를 먼저 시도할 것
 - **알 이스터에그**: 알을 만들다 실수로 나온 펭귄 이미지를 재활용, 알 단계에서 5% 확률로 등장 (`GamigotchiView.EGG_EASTER_EGG_CHANCE`)
@@ -206,6 +207,11 @@
 - 애니메이션: 캐릭터당 **2프레임** 루프 — ✅ 확정 (2026-07-12). 원조 다마고치도 저프레임으로 충분했다는 근거로 2프레임 유지 결정 (배터리·메모리 부담 최소화)
 - 스프라이트 크기: **64×64px** — ✅ 확정 (2026-07-12, 기존 32×32에서 상향). 32×32는 원형 화면에서 너무 작다는 피드백으로 2배 업스케일
 - `Toybox.Timer`로 프레임 교체, 손목 들었을 때 애니메이션 시작
+
+### 런처 아이콘
+
+- ✅ 완료 (2026-08-29). 기본 플레이스홀더(사각형 그리드 SVG) 대신 아기 캐릭터 기반 초상화(bust) 아이콘으로 교체 — PixelLab `create_portrait_character`(character_to_portrait)로 기존 아기 캐릭터에서 흉상 추출 → 40×40px로 변환(`tools/ai_to_sprite.py`). fr255가 요구하는 40×40 규격과 정확히 일치해 빌드 경고("launcher icon (24x24) isn't compatible...") 해소
+- `resources/drawables/icons/launcher_icon.png`, `drawables.xml`의 `LauncherIcon`이 SVG→PNG로 변경됨
 
 ### 방향 전환 걷기 (계획, 2026-07-13 — PixelLab 구독 시 진행)
 

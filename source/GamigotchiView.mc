@@ -277,13 +277,14 @@ class GamigotchiView extends WatchUi.View {
         return (frame == 1) ? Rez.Drawables.BabyNormal1 : Rez.Drawables.BabyNormal2;
     }
 
-    // 방향 D: 어른 단계 표정별 스프라이트. 위와 동일한 폴백 패턴 + 케어 등급(위 주석 참고)
+    // 방향 D: 어른 단계 표정별 스프라이트. 표정은 아직 전용 아트 없어서 폴백 -
+    // 케어 등급(아기 단계 10일 케어 결과)은 2026-08-29 아트 연결 완료
     private function _getAdultExpressionBitmapId(expression as Number, frame as Number, careTier as Number) as ResourceId {
         // if (expression == GamigotchiStats.EXPR_SULKY) { return (frame == 1) ? Rez.Drawables.AdultSulky1 : Rez.Drawables.AdultSulky2; }
         // if (expression == GamigotchiStats.EXPR_DELIGHTED) { return (frame == 1) ? Rez.Drawables.AdultDelighted1 : Rez.Drawables.AdultDelighted2; }
         // if (expression == GamigotchiStats.EXPR_HEART) { return (frame == 1) ? Rez.Drawables.AdultHeart1 : Rez.Drawables.AdultHeart2; }
-        // if (careTier == GamigotchiStats.CARE_TIER_NEGLECTED) { return (frame == 1) ? Rez.Drawables.AdultNeglected1 : Rez.Drawables.AdultNeglected2; }
-        // if (careTier == GamigotchiStats.CARE_TIER_WELL) { return (frame == 1) ? Rez.Drawables.AdultWellCared1 : Rez.Drawables.AdultWellCared2; }
+        if (careTier == GamigotchiStats.CARE_TIER_NEGLECTED) { return (frame == 1) ? Rez.Drawables.AdultNeglected1 : Rez.Drawables.AdultNeglected2; }
+        if (careTier == GamigotchiStats.CARE_TIER_WELL) { return (frame == 1) ? Rez.Drawables.AdultWellCared1 : Rez.Drawables.AdultWellCared2; }
         return (frame == 1) ? Rez.Drawables.AdultNormal1 : Rez.Drawables.AdultNormal2;
     }
 

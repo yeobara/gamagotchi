@@ -1,5 +1,5 @@
 <drawables xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
-    <bitmap id="LauncherIcon" filename="launcher_icon.svg" dithering="none" />
+    <bitmap id="LauncherIcon" filename="icons/launcher_icon.png" dithering="none" />
 
     <bitmap id="EggNormal1" filename="sprites/egg_normal_1.png" dithering="none" />
     <bitmap id="EggNormal2" filename="sprites/egg_normal_2.png" dithering="none" />
@@ -15,6 +15,12 @@
     <bitmap id="AdultNormal2" filename="sprites/adult_normal_2.png" dithering="none" />
     <bitmap id="AdultSick1" filename="sprites/adult_sick_1.png" dithering="none" />
     <bitmap id="AdultSick2" filename="sprites/adult_sick_2.png" dithering="none" />
+
+    <!-- 케어 등급(Care Tier) - 아기 단계 케어(10일) 결과로 갈리는 어른 외형 -->
+    <bitmap id="AdultNeglected1" filename="sprites/adult_neglected_1.png" dithering="none" />
+    <bitmap id="AdultNeglected2" filename="sprites/adult_neglected_2.png" dithering="none" />
+    <bitmap id="AdultWellCared1" filename="sprites/adult_well_cared_1.png" dithering="none" />
+    <bitmap id="AdultWellCared2" filename="sprites/adult_well_cared_2.png" dithering="none" />
 
     <bitmap id="Grave" filename="sprites/grave.png" dithering="none" />
 
