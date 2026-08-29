@@ -53,6 +53,17 @@ module GamigotchiStats {
     const EXPR_LOW_THRESHOLD = 30.0;  // ALERT_THRESHOLD와 동일 감각 - 이 이하면 시무룩
     const EXPR_HIGH_THRESHOLD = 70.0; // 이 이상이면 활짝 (가안, 튜닝 필요)
 
+    // 케어 품질 등급 (2026-08-23 확정) - 진화 체크포인트에서 그 단계 동안의 케어를
+    // 평가해 다음 외형(성장 결과)을 가른다. 성장 "속도"(healthyElapsedSeconds)와는
+    // 별개 트랙 - 이 점수는 결과(등급)만 결정하고 성장 타이머엔 영향 없음
+    const CARE_TIER_NEGLECTED = 0;
+    const CARE_TIER_NORMAL = 1;
+    const CARE_TIER_WELL = 2;
+
+    const CARE_LOW_CUTOFF = 40.0;   // 이하 - Neglected
+    const CARE_HIGH_CUTOFF = 75.0;  // 이상 - Well-cared
+    const CARE_SICK_PENALTY = 5.0;  // 그 단계에서 아픈 상태(healthStatus 0->1) 진입할 때마다 감점
+
     // 배고픔/행복 게이지로 표정 계산 (하트눈은 여기 포함 안 됨 - 호출부에서 트랜지언트로 덧씌움)
     public function computeExpression(hunger as Float, happiness as Float) as Number {
         if (hunger <= EXPR_LOW_THRESHOLD || happiness <= EXPR_LOW_THRESHOLD) {
@@ -116,6 +127,7 @@ module GamigotchiStats {
         Storage.setValue("hunger", hunger);
         Storage.setValue("happiness", happiness);
 
+        _accumulateCareScore(hunger, happiness, elapsedSec);
         _accumulatePoop(elapsedSec);
 
         // 아픔/사망은 배고픔 단독 트리거 (행복 0은 소프트 실패 - 성장만 멈추고 안 죽음).
@@ -134,6 +146,7 @@ module GamigotchiStats {
         if (healthStatus == 0) {
             Storage.setValue("healthStatus", 1);
             Storage.setValue("sickSinceTime", now);
+            Storage.setValue("careSickEpisodes", _getNumber("careSickEpisodes", 0) + 1);
             return;
         }
         // 이미 아픈 상태 - 얼마나 지속됐는지 확인
@@ -164,12 +177,59 @@ module GamigotchiStats {
         var healthyElapsed = _getNumber("healthyElapsedSeconds", 0) + elapsedSec;
         var threshold = STAGE_THRESHOLDS_SEC[growthStage];
         if (healthyElapsed >= threshold) {
+            var tier = _finalizeCareTier();
+            if (growthStage == 0) {
+                Storage.setValue("careTierBaby", tier); // 알 단계 케어 -> 아기 외형
+            } else if (growthStage == 1) {
+                Storage.setValue("careTierAdult", tier); // 아기 단계 케어 -> 어른 외형
+            }
+
             growthStage += 1;
             healthyElapsed = 0;
             Storage.setValue("growthStage", growthStage);
             Storage.setValue("pendingEvolution", true); // 다음에 앱 열 때 축하 연출 표시용
         }
         Storage.setValue("healthyElapsedSeconds", healthyElapsed);
+    }
+
+    // 방금 끝난 단계의 케어 점수(시간 가중 평균 게이지 - 아픈 상태 진입 감점)를 등급으로 확정하고
+    // 다음 단계를 위해 누적값 리셋
+    function _finalizeCareTier() as Number {
+        var sum = Storage.getValue("careScoreSum");
+        var sumVal = (sum instanceof Float) ? sum : ((sum instanceof Number) ? sum.toFloat() : 0.0);
+        var elapsed = _getNumber("careScoreElapsedSec", 0);
+        var sickEpisodes = _getNumber("careSickEpisodes", 0);
+
+        var avgScore = (elapsed > 0) ? (sumVal / elapsed.toFloat()) : GAUGE_MAX;
+        var finalScore = avgScore - sickEpisodes * CARE_SICK_PENALTY;
+        if (finalScore < 0.0) { finalScore = 0.0; }
+
+        Storage.setValue("careScoreSum", 0.0);
+        Storage.setValue("careScoreElapsedSec", 0);
+        Storage.setValue("careSickEpisodes", 0);
+
+        if (finalScore <= CARE_LOW_CUTOFF) { return CARE_TIER_NEGLECTED; }
+        if (finalScore >= CARE_HIGH_CUTOFF) { return CARE_TIER_WELL; }
+        return CARE_TIER_NORMAL;
+    }
+
+    // 단계 진행 중 매 tick마다 (hunger+happiness)/2를 경과시간 가중해 누적 - 진화 체크포인트에서
+    // 평균을 내 케어 등급을 매김. 성장 여부(healthy threshold)와 무관하게 항상 누적
+    function _accumulateCareScore(hunger as Float, happiness as Float, elapsedSec as Number) as Void {
+        var sum = Storage.getValue("careScoreSum");
+        var sumVal = (sum instanceof Float) ? sum : ((sum instanceof Number) ? sum.toFloat() : 0.0);
+        sumVal += (hunger + happiness) / 2.0 * elapsedSec;
+        Storage.setValue("careScoreSum", sumVal);
+        Storage.setValue("careScoreElapsedSec", _getNumber("careScoreElapsedSec", 0) + elapsedSec);
+    }
+
+    // 뷰/앱에서 등급 조회용
+    public function getCareTierBaby() as Number {
+        return _getNumber("careTierBaby", CARE_TIER_NORMAL);
+    }
+
+    public function getCareTierAdult() as Number {
+        return _getNumber("careTierAdult", CARE_TIER_NORMAL);
     }
 
     // 게이지를 amount만큼 올리고 결과값 반환 (Feed/Play/Medicine에서 사용)

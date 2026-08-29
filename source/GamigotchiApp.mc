@@ -324,6 +324,11 @@ class GamigotchiApp extends Application.AppBase {
         Storage.setValue("lastTickTime", Time.now().value());
         Storage.setValue("hungerNotified", false);
         Storage.setValue("pendingEvolution", false);
+        Storage.setValue("careScoreSum", 0.0);
+        Storage.setValue("careScoreElapsedSec", 0);
+        Storage.setValue("careSickEpisodes", 0);
+        Storage.setValue("careTierBaby", GamigotchiStats.CARE_TIER_NORMAL);
+        Storage.setValue("careTierAdult", GamigotchiStats.CARE_TIER_NORMAL);
     }
 }
 
