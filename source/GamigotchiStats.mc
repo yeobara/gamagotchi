@@ -67,7 +67,6 @@ module GamigotchiStats {
     const CARE_HIGH_CUTOFF = 75.0;  // 이상 - Well-cared
     const CARE_SICK_PENALTY = 5.0;  // 그 단계에서 아픈 상태(healthStatus 0->1) 진입할 때마다 감점
 
-    const OVEREAT_HUNGER_THRESHOLD = 80.0; // 배고픔이 이미 이 이상인데 Feed하면 "과식"으로 집계
     const OVEREAT_COUNT_THRESHOLD = 5;     // 한 단계 동안 과식이 이 횟수 이상이면 Neglected(뚱뚱) 확정 (가안, 튜닝 필요)
 
     // 배고픔/행복 게이지로 표정 계산 (하트눈은 여기 포함 안 됨 - 호출부에서 트랜지언트로 덧씌움)
@@ -224,9 +223,10 @@ module GamigotchiStats {
         return CARE_TIER_NORMAL;
     }
 
-    // Feed 시점에 호출 - 배고픔이 이미 충분한데도 먹이면 "과식"으로 집계 (GamigotchiApp.feed()에서 사용)
+    // Feed 시점에 호출 - 배고픔이 이미 꽉 찬(GAUGE_MAX) 상태인데도 먹이면 "과식"으로 집계
+    // (GamigotchiApp.feed()에서 사용)
     public function recordFeed(hungerBeforeFeed as Float) as Void {
-        if (hungerBeforeFeed >= OVEREAT_HUNGER_THRESHOLD) {
+        if (hungerBeforeFeed >= GAUGE_MAX) {
             Storage.setValue("overeatCount", _getNumber("overeatCount", 0) + 1);
         }
     }

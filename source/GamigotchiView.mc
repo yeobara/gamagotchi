@@ -143,10 +143,6 @@ class GamigotchiView extends WatchUi.View {
             return;
         }
 
-        // Hunger/Happy gauges (top) - 4 icons each, half-increments
-        _drawIconGauge(dc, cx, 8, app.getHunger(), Rez.Drawables.HeartFull, Rez.Drawables.HeartHalf, Rez.Drawables.HeartEmpty);
-        _drawIconGauge(dc, cx, 30, app.getHappiness(), Rez.Drawables.StarFull, Rez.Drawables.StarHalf, Rez.Drawables.StarEmpty);
-
         // 청년기 + 정상 상태에서만 배회 적용 (다른 단계는 아직 걷기 프레임이 없음)
         var canWander = (stage == 2 && health == 0);
         var charY = h / 2 - 10;
@@ -175,30 +171,18 @@ class GamigotchiView extends WatchUi.View {
         var charDrawY = charY + reactionY;
         dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charDrawY - bitmap.getHeight() / 2, bitmap);
 
-        // 설계 감사 #3: 응아가 화면에 안 보여 감소 페널티 원인을 알 수 없던 문제 - 발밑에 표시
-        _drawPoop(dc, charStageX, charDrawY + bitmap.getHeight() / 2 - 4, app.getPoopCount());
-
-        // Speech bubble
+        // Speech bubble - 원작처럼 게이지/응아 상세 수치는 상태 화면(Up 버튼)으로 미루고
+        // 메인 화면은 심플하게. 예전에 하트/별 게이지가 있던 자리로 이동(2026-08-29) - 화면
+        // 맨 위(y=8 근처)는 원형이라 폭이 좁아 긴 문구가 테두리에 잘릴 수 있어 그보다 살짝
+        // 아래(원이 넓어지는 지점)에 배치
         var bubble = _getBubble(app, health);
         if (!bubble.equals("")) {
             dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h / 2 + 40, Graphics.FONT_TINY, bubble, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, 45, Graphics.FONT_TINY, bubble, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
         // Tokens (coin icon + count)
         _drawTokenCount(dc, cx, h - 45, app.getTokens());
-    }
-
-    // 설계 감사 #3: 응아 개수를 발밑 작은 원으로 표시 (최대 4개, 전용 아트 전까지 도형만 사용)
-    private function _drawPoop(dc as Graphics.Dc, cx as Number, feetY as Number, count as Number) as Void {
-        if (count <= 0) { return; }
-        var shown = (count > 4) ? 4 : count;
-        var spacing = 14;
-        var startX = cx - (spacing * (shown - 1)) / 2;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        for (var i = 0; i < shown; i += 1) {
-            dc.fillCircle(startX + i * spacing, feetY, 5);
-        }
     }
 
     // 동전 아이콘 옆에 토큰 개수 표시
@@ -213,28 +197,6 @@ class GamigotchiView extends WatchUi.View {
         dc.drawBitmap(startX, y - coin.getHeight() / 2, coin);
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX + coin.getWidth() + gap, y - Graphics.getFontHeight(Graphics.FONT_SMALL) / 2, Graphics.FONT_SMALL, text, Graphics.TEXT_JUSTIFY_LEFT);
-    }
-
-    // 배고픔/행복 게이지를 아이콘 4개(반칸 단위)로 표시 (value: 0~100)
-    private function _drawIconGauge(dc as Graphics.Dc, cx as Number, y as Number, value as Float, fullId as ResourceId, halfId as ResourceId, emptyId as ResourceId) as Void {
-        var pips = value / 100.0 * 4.0; // 0.0~4.0
-        var full = WatchUi.loadResource(fullId) as WatchUi.BitmapResource;
-        var iconW = full.getWidth();
-        var spacing = 2;
-        var totalW = iconW * 4 + spacing * 3;
-        var x = cx - totalW / 2;
-
-        for (var i = 0; i < 4; i += 1) {
-            var id = emptyId;
-            if (pips >= i + 1) {
-                id = fullId;
-            } else if (pips >= i + 0.5) {
-                id = halfId;
-            }
-            var icon = WatchUi.loadResource(id) as WatchUi.BitmapResource;
-            dc.drawBitmap(x, y, icon);
-            x += iconW + spacing;
-        }
     }
 
     // 진화 축하 연출: 방사형 광선(그래픽 도형만 사용, 별도 이미지 불필요) + 새 단계 스프라이트
