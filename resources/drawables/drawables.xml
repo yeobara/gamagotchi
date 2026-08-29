@@ -11,10 +11,25 @@
     <bitmap id="BabySick1" filename="sprites/baby_sick_1.png" dithering="none" />
     <bitmap id="BabySick2" filename="sprites/baby_sick_2.png" dithering="none" />
 
+    <!-- 방향 D: 표정별 스프라이트 -->
+    <bitmap id="BabySulky1" filename="sprites/baby_sulky_1.png" dithering="none" />
+    <bitmap id="BabySulky2" filename="sprites/baby_sulky_2.png" dithering="none" />
+    <bitmap id="BabyDelighted1" filename="sprites/baby_delighted_1.png" dithering="none" />
+    <bitmap id="BabyDelighted2" filename="sprites/baby_delighted_2.png" dithering="none" />
+    <bitmap id="BabyHeart1" filename="sprites/baby_heart_1.png" dithering="none" />
+    <bitmap id="BabyHeart2" filename="sprites/baby_heart_2.png" dithering="none" />
+
     <bitmap id="AdultNormal1" filename="sprites/adult_normal_1.png" dithering="none" />
     <bitmap id="AdultNormal2" filename="sprites/adult_normal_2.png" dithering="none" />
     <bitmap id="AdultSick1" filename="sprites/adult_sick_1.png" dithering="none" />
     <bitmap id="AdultSick2" filename="sprites/adult_sick_2.png" dithering="none" />
+
+    <bitmap id="AdultSulky1" filename="sprites/adult_sulky_1.png" dithering="none" />
+    <bitmap id="AdultSulky2" filename="sprites/adult_sulky_2.png" dithering="none" />
+    <bitmap id="AdultDelighted1" filename="sprites/adult_delighted_1.png" dithering="none" />
+    <bitmap id="AdultDelighted2" filename="sprites/adult_delighted_2.png" dithering="none" />
+    <bitmap id="AdultHeart1" filename="sprites/adult_heart_1.png" dithering="none" />
+    <bitmap id="AdultHeart2" filename="sprites/adult_heart_2.png" dithering="none" />
 
     <!-- 케어 등급(Care Tier) - 아기 단계 케어(10일) 결과로 갈리는 어른 외형 -->
     <bitmap id="AdultNeglected1" filename="sprites/adult_neglected_1.png" dithering="none" />
