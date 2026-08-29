@@ -2,6 +2,7 @@ import Toybox.Application.Storage;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
+import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -21,10 +22,26 @@ class GamigotchiView extends WatchUi.View {
     private var _walkFrameIdx as Number = 0;  // 0~5, 걷기 프레임 순환
     private var _walkTicksLeft as Number = 0; // 현재 상태(서있기/걷기) 유지 틱 수
 
+    // 가만히 있을 때도 말을 거는 랜덤 잡담 (2026-08-29) - 특별한 이벤트 없어도 살아있는 느낌
+    private var _ambientText as String = "";
+    private var _ambientUntil as Number = 0;
+    private var _nextAmbientAt as Number = 0;
+
     const EGG_EASTER_EGG_CHANCE = 5; // 알 단계에서 이 확률(%)로 "이미 펭귄인 알" 등장
     const WALK_RANGE = 55;   // 중심에서 좌우 최대 이동 범위(px)
     const WALK_STEP = 4;     // 틱당 이동 픽셀
     const WALK_ANIM_FRAMES = 6;
+
+    const AMBIENT_MESSAGES = [
+        "just vibing~", "*waddle waddle*", "nice day for a run!",
+        "hi there!", "la la la~", "thinking about running...",
+        "*stretches*", "what a nice watch you have"
+    ];
+    const AMBIENT_DURATION_SEC = 4;
+    const AMBIENT_MIN_GAP_SEC = 90;  // 잡담 사이 최소 간격
+    const AMBIENT_MAX_GAP_SEC = 240; // 최대 간격 (가안, 튜닝 필요)
+
+    const IDLE_BOB_OFFSET = 2; // 가만히 있을 때 살짝 위아래로(숨쉬는 느낌), 걷기 중엔 미적용
 
     function initialize() {
         View.initialize();
@@ -42,6 +59,10 @@ class GamigotchiView extends WatchUi.View {
         var roll = Math.rand() % 100;
         if (roll < 0) { roll = -roll; }
         _eggEasterEgg = (roll < EGG_EASTER_EGG_CHANCE);
+
+        if (_nextAmbientAt == 0) {
+            _nextAmbientAt = Time.now().value() + AMBIENT_MIN_GAP_SEC + _randBelow(AMBIENT_MAX_GAP_SEC - AMBIENT_MIN_GAP_SEC);
+        }
 
         _checkPendingEvolution();
 
@@ -88,7 +109,17 @@ class GamigotchiView extends WatchUi.View {
         _frame = (_frame == 1) ? 2 : 1;
         _updateWander();
         _checkPendingEvolution(); // 화면 표시 중에 진화해도 즉시 연출 (감사 #10a)
+        _maybeTriggerAmbient();
         WatchUi.requestUpdate();
+    }
+
+    // 특별한 이벤트 없어도 가끔 말을 걸어주는 랜덤 잡담 (2026-08-29)
+    private function _maybeTriggerAmbient() as Void {
+        var now = Time.now().value();
+        if (now < _nextAmbientAt) { return; }
+        _ambientText = AMBIENT_MESSAGES[_randBelow(AMBIENT_MESSAGES.size())];
+        _ambientUntil = now + AMBIENT_DURATION_SEC;
+        _nextAmbientAt = now + AMBIENT_MIN_GAP_SEC + _randBelow(AMBIENT_MAX_GAP_SEC - AMBIENT_MIN_GAP_SEC);
     }
 
     // 주기적이지 않게 "서있기 <-> 걷기"를 오가며 좌우로 불규칙하게 배회
@@ -161,6 +192,9 @@ class GamigotchiView extends WatchUi.View {
             reactionY = 6; // 축 처짐(스쿼시)
         } else if (reaction == GamigotchiStats.REACTION_LONG) {
             reactionX = (_frame == 1) ? -2 : 2; // 다리 후들거림
+        } else if (!(canWander && _isWalking)) {
+            // 가만히 있을 때 살짝 위아래로(숨쉬는 느낌, 2026-08-29) - 걷는 중/다른 리액션 중엔 미적용
+            reactionY = (_frame == 1) ? 0 : -IDLE_BOB_OFFSET;
         }
 
         // Character
@@ -333,6 +367,7 @@ class GamigotchiView extends WatchUi.View {
         if (app.isSleeping()) { return "zzz..."; } // 원작 다마고치 취침 패턴 참고 (2026-08-29)
         if (app.getHunger() <= 30.0 || app.getHappiness() <= 30.0) { return "hungry..."; }
         if (app.getPoopCount() > 0) { return "clean me up..."; }
+        if (Time.now().value() < _ambientUntil) { return _ambientText; } // 랜덤 잡담 - 가장 낮은 우선순위
         return "";
     }
 }
