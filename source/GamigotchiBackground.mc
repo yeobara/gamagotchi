@@ -18,13 +18,9 @@ class GamigotchiBackground extends System.ServiceDelegate {
     }
 
     function onTemporalEvent() as Void {
-        // ⚠️ TEST ONLY (2026-07-16): 토큰-러닝 연동 디버깅용, 확인 후 제거
-        Storage.setValue("debugLastTemporalEventTime", Time.now().value());
-
         var info = Activity.getActivityInfo();
         if (info != null) {
             var dist = info.elapsedDistance;
-            System.println("onTemporalEvent: distance=" + dist);
 
             // 달리기 중이면 거리 저장 (최대값 갱신)
             var prev = Storage.getValue("lastRunDistance");
@@ -33,16 +29,13 @@ class GamigotchiBackground extends System.ServiceDelegate {
                 Storage.setValue("lastRunDistance", dist);
             }
 
-            // 방향 E: 페이스 계산용 경과 시간도 같은 폴링에서 저장 (최대값 갱신).
-            // elapsedTime은 Activity.Info의 표준 필드로 보이나 실기기/시뮬레이터 검증 전 (TODO)
+            // 방향 E: 페이스 계산용 경과 시간도 같은 폴링에서 저장 (최대값 갱신)
             var elapsed = info.elapsedTime;
             var prevElapsed = Storage.getValue("lastRunElapsedMs");
             var prevElapsedVal = (prevElapsed instanceof Number) ? prevElapsed : 0;
             if (elapsed != null && elapsed > prevElapsedVal) {
                 Storage.setValue("lastRunElapsedMs", elapsed);
             }
-        } else {
-            System.println("onTemporalEvent: no active activity");
         }
 
         GamigotchiStats.tick();
@@ -52,7 +45,6 @@ class GamigotchiBackground extends System.ServiceDelegate {
         try {
             Background.registerForTemporalEvent(Time.now().add(new Time.Duration(5 * 60)));
         } catch (e instanceof Background.InvalidBackgroundTimeException) {
-            System.println("onTemporalEvent: reschedule too soon, skipping");
         }
 
         Background.exit(null);
@@ -84,15 +76,9 @@ class GamigotchiBackground extends System.ServiceDelegate {
     }
 
     function onActivityCompleted(activity) as Void {
-        // ⚠️ TEST ONLY (2026-07-16): 토큰-러닝 연동 디버깅용, 확인 후 제거
-        Storage.setValue("debugActivityCompletedCalled", true);
-        var sportRaw = (activity instanceof Dictionary) ? (activity as Dictionary).get(:sport) : null;
-        Storage.setValue("debugSportRaw", (sportRaw != null) ? sportRaw.toString() : "null-or-not-dict");
-
         var isRun = (activity instanceof Dictionary) &&
                     ((activity as Dictionary).get(:sport) instanceof Number) &&
                     ((activity as Dictionary).get(:sport) == 1);
-        System.println("isRun=" + isRun);
         if (!isRun) {
             Background.exit(null);
             return;
@@ -118,8 +104,6 @@ class GamigotchiBackground extends System.ServiceDelegate {
 
         // 방향 E: 런 데이터 리액션 태그 (Tier 1 - 페이스/거리 기반, 날씨 태그는 추후)
         var reactionTag = GamigotchiStats.computeRunReaction(distanceKm, elapsedMs);
-
-        System.println("onActivityCompleted: dist=" + distanceM + "m tokens=" + tokensEarned + " bonus=" + bonus + " reactionTag=" + reactionTag);
 
         // 거리/시간 초기화
         Storage.setValue("lastRunDistance", 0.0f);

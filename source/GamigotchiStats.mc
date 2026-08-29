@@ -53,16 +53,22 @@ module GamigotchiStats {
     const EXPR_LOW_THRESHOLD = 30.0;  // ALERT_THRESHOLD와 동일 감각 - 이 이하면 시무룩
     const EXPR_HIGH_THRESHOLD = 70.0; // 이 이상이면 활짝 (가안, 튜닝 필요)
 
-    // 케어 품질 등급 (2026-08-23 확정) - 진화 체크포인트에서 그 단계 동안의 케어를
-    // 평가해 다음 외형(성장 결과)을 가른다. 성장 "속도"(healthyElapsedSeconds)와는
+    // 케어 품질 등급 (2026-08-23 확정, 2026-08-29 트리거 변경) - 진화 체크포인트에서 그 단계
+    // 동안의 케어를 평가해 다음 외형(성장 결과)을 가른다. 성장 "속도"(healthyElapsedSeconds)와는
     // 별개 트랙 - 이 점수는 결과(등급)만 결정하고 성장 타이머엔 영향 없음
-    const CARE_TIER_NEGLECTED = 0;
-    const CARE_TIER_NORMAL = 1;
-    const CARE_TIER_WELL = 2;
+    //
+    // Neglected(뚱뚱) 트리거를 "케어 점수가 낮음"에서 "과식(불필요할 때도 계속 Feed)"으로 변경 -
+    // 원작 다마고치의 "많이 먹이면 살찐다" 감각 계승. 케어 점수가 낮은데 과식도 안 했으면
+    // (그냥 방치) Normal로 떨어짐 - "못 키운 것"은 뚱뚱해지는 게 아니라 그냥 평범해짐
+    const CARE_TIER_NEGLECTED = 0; // 과식(과다 급식)으로 뚱뚱해진 결과
+    const CARE_TIER_NORMAL = 1;    // 케어 점수 낮음(방치) - 기본 외형
+    const CARE_TIER_WELL = 2;      // 케어 점수 높음 - 러너 체형
 
-    const CARE_LOW_CUTOFF = 40.0;   // 이하 - Neglected
     const CARE_HIGH_CUTOFF = 75.0;  // 이상 - Well-cared
     const CARE_SICK_PENALTY = 5.0;  // 그 단계에서 아픈 상태(healthStatus 0->1) 진입할 때마다 감점
+
+    const OVEREAT_HUNGER_THRESHOLD = 80.0; // 배고픔이 이미 이 이상인데 Feed하면 "과식"으로 집계
+    const OVEREAT_COUNT_THRESHOLD = 5;     // 한 단계 동안 과식이 이 횟수 이상이면 Neglected(뚱뚱) 확정 (가안, 튜닝 필요)
 
     // 배고픔/행복 게이지로 표정 계산 (하트눈은 여기 포함 안 됨 - 호출부에서 트랜지언트로 덧씌움)
     public function computeExpression(hunger as Float, happiness as Float) as Number {
@@ -199,6 +205,7 @@ module GamigotchiStats {
         var sumVal = (sum instanceof Float) ? sum : ((sum instanceof Number) ? sum.toFloat() : 0.0);
         var elapsed = _getNumber("careScoreElapsedSec", 0);
         var sickEpisodes = _getNumber("careSickEpisodes", 0);
+        var overeatCount = _getNumber("overeatCount", 0);
 
         var avgScore = (elapsed > 0) ? (sumVal / elapsed.toFloat()) : GAUGE_MAX;
         var finalScore = avgScore - sickEpisodes * CARE_SICK_PENALTY;
@@ -207,10 +214,21 @@ module GamigotchiStats {
         Storage.setValue("careScoreSum", 0.0);
         Storage.setValue("careScoreElapsedSec", 0);
         Storage.setValue("careSickEpisodes", 0);
+        Storage.setValue("overeatCount", 0);
 
-        if (finalScore <= CARE_LOW_CUTOFF) { return CARE_TIER_NEGLECTED; }
+        // 과식이 최우선 판정 - 케어 점수가 아무리 높아도 과식했으면 뚱뚱해짐 (원작 다마고치 "많이
+        // 먹이면 살찐다" 감각). 과식 안 했는데 점수도 낮으면(그냥 방치) Normal - 뚱뚱해지는 게
+        // 아니라 그냥 평범하게 못 큼
+        if (overeatCount >= OVEREAT_COUNT_THRESHOLD) { return CARE_TIER_NEGLECTED; }
         if (finalScore >= CARE_HIGH_CUTOFF) { return CARE_TIER_WELL; }
         return CARE_TIER_NORMAL;
+    }
+
+    // Feed 시점에 호출 - 배고픔이 이미 충분한데도 먹이면 "과식"으로 집계 (GamigotchiApp.feed()에서 사용)
+    public function recordFeed(hungerBeforeFeed as Float) as Void {
+        if (hungerBeforeFeed >= OVEREAT_HUNGER_THRESHOLD) {
+            Storage.setValue("overeatCount", _getNumber("overeatCount", 0) + 1);
+        }
     }
 
     // 단계 진행 중 매 tick마다 (hunger+happiness)/2를 경과시간 가중해 누적 - 진화 체크포인트에서
