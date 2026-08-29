@@ -28,7 +28,10 @@ class GamigotchiView extends WatchUi.View {
     private var _nextAmbientAt as Number = 0;
 
     const EGG_EASTER_EGG_CHANCE = 5; // 알 단계에서 이 확률(%)로 "이미 펭귄인 알" 등장
-    const WALK_RANGE = 55;   // 중심에서 좌우 최대 이동 범위(px)
+    // 배회 최소화 (2026-08-29) - 원작 다마고치는 화면 안에서 거의 안 돌아다님(작은 세그먼트
+    // LCD 특성). 좌우로 활발히 슬라이드하는 게 오히려 부자연스럽다는 피드백 반영 - 이동
+    // 범위/빈도를 크게 줄여서 "가끔 몇 걸음만" 움직이는 정도로
+    const WALK_RANGE = 20;   // 중심에서 좌우 최대 이동 범위(px) - 55에서 축소
     const WALK_STEP = 4;     // 틱당 이동 픽셀
     const WALK_ANIM_FRAMES = 6;
 
@@ -136,7 +139,7 @@ class GamigotchiView extends WatchUi.View {
             }
             if (_walkX == _walkTargetX || _walkTicksLeft <= 0) {
                 _isWalking = false;
-                _walkTicksLeft = 6 + (_randBelow(10)); // 3~8초 서있기 (500ms 틱 기준)
+                _walkTicksLeft = 60 + (_randBelow(120)); // 30~90초 서있기 (500ms 틱 기준) - 3~8초에서 대폭 확대
             }
         } else {
             if (_walkTicksLeft <= 0) {
@@ -154,9 +157,10 @@ class GamigotchiView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        // 순정 검정 대신 진회색 배경 (2026-08-29) - 캐릭터의 검은 외곽선/부분이
-        // 배경과 묻히는 문제를 배경 쪽에서 해결. 캐릭터 아트는 원래 검은 외곽선 유지
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_DK_GRAY);
+        // 진회색 배경 실기기에서 확인 후 되돌림 (2026-08-29) - 베젤(검정)과 화면 사이에
+        // 뚜렷한 원형 경계가 생겨 "화면이 붕 떠 보이는" 문제. 순정 검정으로 복귀,
+        // 대비 문제는 캐릭터 외곽선 쪽에서 해결 예정
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
         var cx = dc.getWidth() / 2;
@@ -238,9 +242,8 @@ class GamigotchiView extends WatchUi.View {
 
     // 진화 축하 연출: 방사형 광선(그래픽 도형만 사용, 별도 이미지 불필요) + 새 단계 스프라이트
     private function _drawEvolutionScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
-        // 메인 화면과 같은 진회색으로 통일 (2026-08-29) - 캐릭터 스프라이트가 이 색을
-        // 배경으로 미리 구워둔 상태라, 다른 색으로 클리어하면 캐릭터 사각 경계가 비쳐 보임
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_DK_GRAY);
+        // 메인 화면과 같은 순정 검정으로 복귀 (2026-08-29, 배경색 되돌림 참고)
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
         var cy = h / 2 - 10;
