@@ -147,14 +147,11 @@ class GamigotchiView extends WatchUi.View {
         _drawIconGauge(dc, cx, 8, app.getHunger(), Rez.Drawables.HeartFull, Rez.Drawables.HeartHalf, Rez.Drawables.HeartEmpty);
         _drawIconGauge(dc, cx, 30, app.getHappiness(), Rez.Drawables.StarFull, Rez.Drawables.StarHalf, Rez.Drawables.StarEmpty);
 
-        // 청년기 + 정상 상태에서만 배경/배회 적용 (다른 단계는 아직 걷기 프레임이 없음)
+        // 청년기 + 정상 상태에서만 배회 적용 (다른 단계는 아직 걷기 프레임이 없음)
         var canWander = (stage == 2 && health == 0);
         var charY = h / 2 - 10;
 
-        if (canWander) {
-            var ground = WatchUi.loadResource(Rez.Drawables.Ground) as WatchUi.BitmapResource;
-            dc.drawBitmap(cx - ground.getWidth() / 2, charY + 52, ground);
-        } else {
+        if (!canWander) {
             _walkX = 0; // 배회 불가능한 단계면 중앙 고정
         }
 

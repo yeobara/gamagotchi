@@ -31,7 +31,6 @@
 
     <bitmap id="Coin" filename="icons/coin.png" dithering="none" />
 
-    <bitmap id="Ground" filename="sprites/ground.png" dithering="none" />
 
     <bitmap id="AdultWalk1" filename="sprites/adult_walk_1.png" dithering="none" />
     <bitmap id="AdultWalk2" filename="sprites/adult_walk_2.png" dithering="none" />
