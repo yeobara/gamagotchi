@@ -67,7 +67,9 @@ class GamigotchiBackground extends System.ServiceDelegate {
         var notified = Storage.getValue("hungerNotified");
         var alreadyNotified = (notified instanceof Boolean) ? notified : false;
 
-        if (isLow && !alreadyNotified) {
+        // 수면 시간대(원작 다마고치 취침 패턴 참고)엔 알림을 안 보냄 - hungerNotified를 안 세우므로
+        // 깨어난 뒤 다음 tick에서 여전히 배고프면 그때 알림이 나감(놓치지 않음)
+        if (isLow && !alreadyNotified && !GamigotchiStats.isSleeping()) {
             Background.requestApplicationWake("Your penguin needs you!");
             Storage.setValue("hungerNotified", true);
         } else if (!isLow && alreadyNotified) {

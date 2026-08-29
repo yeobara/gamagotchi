@@ -1,6 +1,7 @@
 import Toybox.Application.Storage;
 import Toybox.Lang;
 import Toybox.Time;
+import Toybox.Time.Gregorian;
 
 // 배고픔/행복 게이지, 응아, 성장 타이머 계산 로직.
 // foreground(GamigotchiApp)와 background(GamigotchiBackground) 양쪽에서 호출됨 -
@@ -20,6 +21,17 @@ module GamigotchiStats {
     const POOP_PENALTY_MULT = 1.5; // 응아 방치 시 감소 속도 배율
     const POOP_INTERVAL_HOURS = 8.0; // 8시간마다 응아 1개 발생
     const SICK_TO_DEAD_HOURS = 24.0; // 아픈 상태 24시간 지속 시 사망 (기존 72h 총합과 일치)
+
+    // 자연사(수명) - 원작 다마고치 레퍼런스 반영 (2026-08-29). 방치로 죽는 것과 별개로,
+    // 어른 단계에 도달한 뒤 일정 기간이 지나면 케어와 무관하게 평화롭게 생을 마감함
+    const NATURAL_LIFESPAN_SEC = 30 * 86400; // 어른 도달 후 30일 (가안, 튜닝 필요)
+    const DEATH_CAUSE_NEGLECT = 0; // 방치로 인한 사망 (기존)
+    const DEATH_CAUSE_NATURAL = 1; // 수명을 다한 자연사 (신규)
+
+    // 수면 사이클 - 원작 다마고치 레퍼런스 반영(오전 7시 기상, 오후 8~10시 취침 패턴 참고).
+    // 게이지 감소 등 로직 자체는 멈추지 않고, 알림을 안 보내고 말풍선으로만 표시(아래 참고)
+    const SLEEP_START_HOUR = 21; // 오후 9시부터
+    const SLEEP_END_HOUR = 7;    // 오전 7시까지
 
     // 알 -> 아기: 2시간(짧은 기대감 비트, 2026-07-15 문서 결정 반영 - 기존 3일은 문서-코드 불일치였음),
     // 아기 -> 어른: 추가 10일 (건강 유지 누적 시간 기준, 초 단위). 단계별 배율(아래 STAGE_*_DECAY_MULT)
@@ -145,6 +157,16 @@ module GamigotchiStats {
         if (hunger >= HEALTHY_THRESHOLD && happiness >= HEALTHY_THRESHOLD) {
             _accumulateGrowth(elapsedSec);
         }
+
+        // 자연사(수명) - 최종 단계(어른) 도달 후엔 케어 상태와 무관하게 계속 나이를 먹음
+        if (growthStage >= STAGE_THRESHOLDS_SEC.size() && _getNumber("healthStatus", 0) != 2) {
+            var adultAge = _getNumber("adultAgeSeconds", 0) + elapsedSec;
+            Storage.setValue("adultAgeSeconds", adultAge);
+            if (adultAge >= NATURAL_LIFESPAN_SEC) {
+                Storage.setValue("healthStatus", 2);
+                Storage.setValue("deathCause", DEATH_CAUSE_NATURAL);
+            }
+        }
     }
 
     function _handleCriticalGauge(healthStatus as Number, now as Number) as Void {
@@ -158,7 +180,18 @@ module GamigotchiStats {
         var sickSince = _getNumber("sickSinceTime", now);
         if (now - sickSince >= SICK_TO_DEAD_HOURS * 3600) {
             Storage.setValue("healthStatus", 2);
+            Storage.setValue("deathCause", DEATH_CAUSE_NEGLECT);
         }
+    }
+
+    // 수면 시간대인지 (원작 다마고치 취침 패턴 참고) - 로컬 기기 시간 기준
+    public function isSleeping() as Boolean {
+        var hour = Gregorian.info(Time.now(), Time.FORMAT_SHORT).hour;
+        return (hour >= SLEEP_START_HOUR || hour < SLEEP_END_HOUR);
+    }
+
+    public function getDeathCause() as Number {
+        return _getNumber("deathCause", DEATH_CAUSE_NEGLECT);
     }
 
     function _accumulatePoop(elapsedSec as Number) as Void {

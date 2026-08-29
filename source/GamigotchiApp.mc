@@ -273,6 +273,16 @@ class GamigotchiApp extends Application.AppBase {
         return GamigotchiStats.getCareTierAdult();
     }
 
+    // 사망 원인(방치/자연사) - 사망 화면 연출 분기용
+    function getDeathCause() as Number {
+        return GamigotchiStats.getDeathCause();
+    }
+
+    // 수면 시간대 여부 - 원작 다마고치 취침 패턴 참고
+    function isSleeping() as Boolean {
+        return GamigotchiStats.isSleeping();
+    }
+
     function getHealthStatus() as Number {
         var h = Storage.getValue("healthStatus");
         return (h instanceof Number) ? h : 0;
@@ -327,6 +337,8 @@ class GamigotchiApp extends Application.AppBase {
         Storage.setValue("careSickEpisodes", 0);
         Storage.setValue("overeatCount", 0);
         Storage.setValue("careTierAdult", GamigotchiStats.CARE_TIER_NORMAL);
+        Storage.setValue("adultAgeSeconds", 0);
+        Storage.setValue("deathCause", GamigotchiStats.DEATH_CAUSE_NEGLECT);
     }
 }
 

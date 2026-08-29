@@ -134,7 +134,7 @@ class GamigotchiView extends WatchUi.View {
         var health = app.getHealthStatus();
 
         if (health == 2) {
-            _drawDeathScreen(dc, cx, h);
+            _drawDeathScreen(dc, cx, h, app, stage);
             return;
         }
 
@@ -166,7 +166,8 @@ class GamigotchiView extends WatchUi.View {
         // Character
         var expression = app.getExpression();
         var charStageX = cx + (canWander ? _walkX : 0) + reactionX;
-        var bitmapId = (canWander && _isWalking) ? _getWalkBitmapId(_walkFrameIdx) : _getCharBitmapId(stage, health, _frame, expression);
+        var movingRight = (canWander && _isWalking && _walkX < _walkTargetX);
+        var bitmapId = (canWander && _isWalking) ? _getWalkBitmapId(_walkFrameIdx, movingRight) : _getCharBitmapId(stage, health, _frame, expression);
         var bitmap = WatchUi.loadResource(bitmapId) as WatchUi.BitmapResource;
         var charDrawY = charY + reactionY;
         dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charDrawY - bitmap.getHeight() / 2, bitmap);
@@ -224,9 +225,33 @@ class GamigotchiView extends WatchUi.View {
         dc.drawText(cx, h - 60, Graphics.FONT_SMALL, "Evolved into " + stageName + "!", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function _drawDeathScreen(dc as Graphics.Dc, cx as Number, h as Number) as Void {
-        var grave = WatchUi.loadResource(Rez.Drawables.Grave) as WatchUi.BitmapResource;
+    // 사망 원인에 따라 다른 연출 (2026-08-29, 원작 다마고치 "평화로운 죽음/별이 되는 연출" 참고).
+    // 방치사(Neglect)는 기존 그대로(무덤 + 담담한 문구), 자연사(Natural)는 진화 연출과 같은
+    // 방사형 광선 + 마지막 모습 + 따뜻한 문구로 "다 살았다"는 느낌을 줌
+    private function _drawDeathScreen(dc as Graphics.Dc, cx as Number, h as Number, app as GamigotchiApp, stage as Number) as Void {
         var charY = h / 2 - 10;
+
+        if (app.getDeathCause() == GamigotchiStats.DEATH_CAUSE_NATURAL) {
+            dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
+            var rays = 12;
+            for (var i = 0; i < rays; i += 1) {
+                var angle = (Math.PI * 2 * i) / rays;
+                var len = (i % 2 == 0) ? 100 : 75;
+                var x2 = cx + (Math.sin(angle) * len).toNumber();
+                var y2 = charY - (Math.cos(angle) * len).toNumber();
+                dc.drawLine(cx, charY, x2, y2);
+            }
+
+            var lastBitmap = WatchUi.loadResource(_getCharBitmapId(stage, 0, 1, GamigotchiStats.EXPR_NORMAL)) as WatchUi.BitmapResource;
+            dc.drawBitmap(cx - lastBitmap.getWidth() / 2, charY - lastBitmap.getHeight() / 2, lastBitmap);
+
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h / 2 + 55, Graphics.FONT_TINY, "Lived a long, happy life.", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, h / 2 + 80, Graphics.FONT_XTINY, "SELECT: new beginning", Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
+
+        var grave = WatchUi.loadResource(Rez.Drawables.Grave) as WatchUi.BitmapResource;
         dc.drawBitmap(cx - grave.getWidth() / 2, charY - grave.getHeight() / 2, grave);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
@@ -234,7 +259,20 @@ class GamigotchiView extends WatchUi.View {
         dc.drawText(cx, h / 2 + 70, Graphics.FONT_XTINY, "SELECT: restart", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function _getWalkBitmapId(frameIdx as Number) as ResourceId {
+    // 측면 걷기 애니메이션 - 왼쪽/오른쪽 방향별로 PixelLab에서 따로 생성한 세트 사용.
+    // (2026-08-29: drawBitmap2+AffineTransform 좌우 반전 시도했으나 렌더링이 깨져서
+    // 방향별 아트를 따로 두는 안전한 방식으로 전환)
+    private function _getWalkBitmapId(frameIdx as Number, movingRight as Boolean) as ResourceId {
+        if (movingRight) {
+            switch (frameIdx) {
+                case 0: return Rez.Drawables.AdultWalkEast1;
+                case 1: return Rez.Drawables.AdultWalkEast2;
+                case 2: return Rez.Drawables.AdultWalkEast3;
+                case 3: return Rez.Drawables.AdultWalkEast4;
+                case 4: return Rez.Drawables.AdultWalkEast5;
+                default: return Rez.Drawables.AdultWalkEast6;
+            }
+        }
         switch (frameIdx) {
             case 0: return Rez.Drawables.AdultWalk1;
             case 1: return Rez.Drawables.AdultWalk2;
@@ -291,7 +329,8 @@ class GamigotchiView extends WatchUi.View {
     private function _getBubble(app as GamigotchiApp, health as Number) as String {
         var transient = app.getTransientMessage();
         if (!transient.equals("")) { return transient; }
-        if (health == 1) { return "so hungry..."; }
+        if (health == 1) { return "so hungry..."; } // 위급 상황은 자는 시간에도 알려줌
+        if (app.isSleeping()) { return "zzz..."; } // 원작 다마고치 취침 패턴 참고 (2026-08-29)
         if (app.getHunger() <= 30.0 || app.getHappiness() <= 30.0) { return "hungry..."; }
         if (app.getPoopCount() > 0) { return "clean me up..."; }
         return "";

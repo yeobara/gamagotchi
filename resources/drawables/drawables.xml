@@ -59,4 +59,11 @@
     <bitmap id="AdultWalk4" filename="sprites/adult_walk_4.png" dithering="none" />
     <bitmap id="AdultWalk5" filename="sprites/adult_walk_5.png" dithering="none" />
     <bitmap id="AdultWalk6" filename="sprites/adult_walk_6.png" dithering="none" />
+
+    <bitmap id="AdultWalkEast1" filename="sprites/adult_walk_east_1.png" dithering="none" />
+    <bitmap id="AdultWalkEast2" filename="sprites/adult_walk_east_2.png" dithering="none" />
+    <bitmap id="AdultWalkEast3" filename="sprites/adult_walk_east_3.png" dithering="none" />
+    <bitmap id="AdultWalkEast4" filename="sprites/adult_walk_east_4.png" dithering="none" />
+    <bitmap id="AdultWalkEast5" filename="sprites/adult_walk_east_5.png" dithering="none" />
+    <bitmap id="AdultWalkEast6" filename="sprites/adult_walk_east_6.png" dithering="none" />
 </drawables>
