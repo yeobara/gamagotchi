@@ -35,10 +35,15 @@ class GamigotchiView extends WatchUi.View {
     const WALK_STEP = 4;     // 틱당 이동 픽셀
     const WALK_ANIM_FRAMES = 6;
 
+    // 그냥 배경 소음 같은 문구 + 사용자한테 직접 말 거는 응원 문구를 섞음 (2026-08-29,
+    // "말을 걸어줬으면 좋겠다"는 피드백 반영)
     const AMBIENT_MESSAGES = [
         "just vibing~", "*waddle waddle*", "nice day for a run!",
         "hi there!", "la la la~", "thinking about running...",
-        "*stretches*", "what a nice watch you have"
+        "*stretches*", "what a nice watch you have",
+        "you're doing great!", "proud of you!", "keep it up!",
+        "you've got this!", "believe in yourself!", "sending good vibes your way",
+        "let's go for a run sometime?", "missed you!"
     ];
     const AMBIENT_DURATION_SEC = 4;
     const AMBIENT_MIN_GAP_SEC = 90;  // 잡담 사이 최소 간격
@@ -184,6 +189,13 @@ class GamigotchiView extends WatchUi.View {
         var canWander = (stage == 2 && health == 0);
         var charY = h / 2 - 10;
 
+        // 수면 - 밤 시간대(오후9시~오전7시, 가안)엔 어른+정상 상태에서 누워 자는 전용
+        // 모습으로 교체, 배회도 멈춤 (2026-08-29). 아기/알은 아직 전용 아트 없어 미적용
+        var isSleepingNow = (stage == 2 && health == 0 && app.isSleeping());
+        if (isSleepingNow) {
+            canWander = false;
+        }
+
         if (!canWander) {
             _walkX = 0; // 배회 불가능한 단계면 중앙 고정
         }
@@ -198,6 +210,8 @@ class GamigotchiView extends WatchUi.View {
             reactionY = 6; // 축 처짐(스쿼시)
         } else if (reaction == GamigotchiStats.REACTION_LONG) {
             reactionX = (_frame == 1) ? -2 : 2; // 다리 후들거림
+        } else if (isSleepingNow) {
+            // 자는 동안은 숨쉬기 바운스 없이 가만히
         } else if (!(canWander && _isWalking)) {
             // 가만히 있을 때 살짝 위아래로(숨쉬는 느낌, 2026-08-29) - 걷는 중/다른 리액션 중엔 미적용
             reactionY = (_frame == 1) ? 0 : -IDLE_BOB_OFFSET;
@@ -207,7 +221,14 @@ class GamigotchiView extends WatchUi.View {
         var expression = app.getExpression();
         var charStageX = cx + (canWander ? _walkX : 0) + reactionX;
         var movingRight = (canWander && _isWalking && _walkX < _walkTargetX);
-        var bitmapId = (canWander && _isWalking) ? _getWalkBitmapId(_walkFrameIdx, movingRight) : _getCharBitmapId(stage, health, _frame, expression);
+        var bitmapId;
+        if (isSleepingNow) {
+            bitmapId = (_frame == 1) ? Rez.Drawables.AdultSleeping1 : Rez.Drawables.AdultSleeping2;
+        } else if (canWander && _isWalking) {
+            bitmapId = _getWalkBitmapId(_walkFrameIdx, movingRight);
+        } else {
+            bitmapId = _getCharBitmapId(stage, health, _frame, expression);
+        }
         var bitmap = WatchUi.loadResource(bitmapId) as WatchUi.BitmapResource;
         var charDrawY = charY + reactionY;
         dc.drawBitmap(charStageX - bitmap.getWidth() / 2, charDrawY - bitmap.getHeight() / 2, bitmap);

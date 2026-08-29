@@ -37,6 +37,10 @@
     <bitmap id="AdultWellCared1" filename="sprites/adult_well_cared_1.png" dithering="none" />
     <bitmap id="AdultWellCared2" filename="sprites/adult_well_cared_2.png" dithering="none" />
 
+    <!-- 수면 - 밤 시간대(오후9시~오전7시)엔 누워서 자는 모습으로 (등급/표정 무관, 최우선) -->
+    <bitmap id="AdultSleeping1" filename="sprites/adult_sleeping_1.png" dithering="none" />
+    <bitmap id="AdultSleeping2" filename="sprites/adult_sleeping_2.png" dithering="none" />
+
     <bitmap id="Grave" filename="sprites/grave.png" dithering="none" />
 
     <!-- 이스터에그: 알을 만들려다 실수로 나온 "이미 펭귄인 알". 알 단계에서 낮은 확률로 등장 -->
